@@ -1,17 +1,3 @@
-begin
-    pk_util_log.set_log_name(p_name_in => 'Dummy log');
-    pk_util_log.open_next_level(p_comments_in => 'Hi guys');
-    pk_util_log.open_next_level(p_comments_in => 'Once again');
-    pk_util_log.open_next_level(p_comments_in => 'And again');
-    
-    pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
-    pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
-    pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
-    dbms_output.put_line(pk_util_log.get_start_log_id); 
-
-end;
-/
-
 declare
     v_sql varchar2(4000);
     v_dummy pls_integer;
@@ -71,4 +57,3 @@ CONNECT BY
 ORDER SIBLINGS BY
 	l.log_id ASC;  
 
-select * from  tech_log_table; 

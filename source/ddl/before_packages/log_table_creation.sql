@@ -1,6 +1,3 @@
---drop table log_table;
---drop table log_instances;
-
 declare
     v_sql varchar2(32767);
     
@@ -29,19 +26,15 @@ begin
         '    comments varchar2(4000 char),' || chr(10) ||
         '    exception_message varchar2(4000 char),' || chr(10) ||
         '    clob_text CLOB,' || chr(10) ||
+        '    constraint log_table_id_pk primary key (log_id), ' || chr(10) ||
+        '    constraint log_table_parent_id_fk foreign key (parent_log_id) references log_table(log_id), ' || chr(10) ||
         '    constraint log_table_status_chck check (status in (''C''/*completed*/, ''R''/*running*/, ''F''/*failed*/))' || chr(10) ||
-        ')' || chr(10) ||
-        'partition by range (start_ts)' || chr(10) ||
-        'interval (numtodsinterval(7, ''day'')) (' || chr(10) ||
-        '    partition log_table_part_XXX values less than (to_date(''01.01.1900'', ''dd.mm.yyyy'') )' || chr(10) ||
-        ')';
+        ')' ;
     
     create_if_not_exists(p_sql_in => v_sql);
-    
-    v_sql := 'create index log_table_id_idx on log_table(log_id) local';
-    create_if_not_exists(p_sql_in => v_sql);
-    
-    v_sql := 'create index log_table_parent_id_idx on log_table(parent_log_id) local';    
+   
+    --index foreign key
+    v_sql := 'create index log_table_parent_id_idx on log_table(parent_log_id)';    
     create_if_not_exists(p_sql_in => v_sql);
     
     v_sql := 'CREATE SEQUENCE SEQ_LOG_TABLE' || chr(10) ||
