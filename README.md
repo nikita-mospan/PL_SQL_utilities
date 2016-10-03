@@ -68,7 +68,6 @@ SELECT
 	l.start_ts,
 	l.end_ts,
 	l.status as status,
-    l.name,
 	lpad('  ', (level - 1) * 2) || l.comments as comments,
     l.row_count
 FROM
@@ -83,10 +82,10 @@ ORDER SIBLINGS BY
 
 The result should be similar to this:
 
-| START_LOG_ID  | LOG_ID | PARENT_LOG_ID | START_TS | END_TS | STATUS | NAME | COMMENTS | ROW_COUNT |
+| START_LOG_ID  | LOG_ID | PARENT_LOG_ID | START_TS | END_TS | STATUS | COMMENTS | ROW_COUNT |
 | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
-| 8  | 8  | | 03-OCT-16 12.09.57.177096 AM | 03-OCT-16 12.09.57.179340 AM | C | Dummy log | Just a dummy record | 1 |
-| 8  |   9  | 8 | 03-OCT-16 12.09.57.178061 AM | 03-OCT-16 12.09.57.178721 AM | C | Dummy log |   Just a dummy record | |
+| 8  | 8  | | 03-OCT-16 12.09.57.177096 AM | 03-OCT-16 12.09.57.179340 AM | C | Just a dummy record | 1 |
+| 8  |   9  | 8 | 03-OCT-16 12.09.57.178061 AM | 03-OCT-16 12.09.57.178721 AM | C |  Just a dummy record | |
 
 
 ## Features
