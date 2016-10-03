@@ -15,8 +15,7 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     
     --procedure initializes logging context in case you created a separate session (for ex. via dbms_scheduler) 
     --and you want this session to write into the same logging hierarchy instance
-    PROCEDURE resume_logging(p_start_log_id  IN tech_log_table.start_log_id%TYPE
-                            ,p_parent_log_id IN tech_log_table.parent_log_id%TYPE);
+    PROCEDURE resume_logging(p_parent_log_id IN tech_log_table.parent_log_id%TYPE);
     
     --Get root log_id of hierarchy instance
     FUNCTION get_start_log_id RETURN tech_log_table.start_log_id%TYPE;

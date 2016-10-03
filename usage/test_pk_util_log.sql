@@ -23,7 +23,7 @@ declare
 BEGIN
     v_plsql_block :=
         'begin
-            pk_util_log.resume_logging(p_start_log_id => 4, p_parent_log_id => 4);
+            pk_util_log.resume_logging(p_parent_log_id => 1);
             pk_util_log.log_record(p_comments_in => ''Job record'', p_status_in => pk_util_log.g_status_completed);
         end;';
     dbms_scheduler.create_job(job_name        => 'resume_logging_job'

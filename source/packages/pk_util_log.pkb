@@ -236,10 +236,15 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     
     --procedure initializes logging context in case you created a separate session (for ex. via dbms_scheduler) 
     --and you want this session to write into the same logging hierarchy instance
-    PROCEDURE resume_logging(p_start_log_id  IN tech_log_table.start_log_id%TYPE
-                            ,p_parent_log_id IN tech_log_table.parent_log_id%TYPE) IS
+    PROCEDURE resume_logging(p_parent_log_id IN tech_log_table.parent_log_id%TYPE) IS
+        v_start_log_id tech_log_table.start_log_id%TYPE;
     BEGIN
-        private_set_start_log_id(p_start_log_id);
+        SELECT t.start_log_id
+        INTO   v_start_log_id
+        FROM   tech_log_table t
+        WHERE  t.log_id = p_parent_log_id;
+        
+        private_set_start_log_id(v_start_log_id);
         private_set_cur_log_id(p_parent_log_id);
     END;
       
