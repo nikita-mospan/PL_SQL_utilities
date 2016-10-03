@@ -38,10 +38,10 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
     
     --Procedure sets the name for logging hierarchy instance
-    PROCEDURE set_log_name(p_name_in IN tech_log_table.name%TYPE);
+    PROCEDURE set_log_name(p_name_in IN tech_log_instances.name%TYPE);
     
     --Procedure gets the name of the logging hierarchy instance
-    FUNCTION get_log_name RETURN tech_log_table.name%TYPE;
+    FUNCTION get_log_name RETURN tech_log_instances.name%TYPE;
     
     --Get current log_id for the session
     FUNCTION get_current_log_id RETURN tech_log_table.log_id%TYPE;

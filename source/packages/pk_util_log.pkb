@@ -8,7 +8,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
 	g_start_log_id tech_log_table.start_log_id%type := NULL;
     g_current_log_id tech_log_table.log_id%type := NULL;
     g_parent_log_id tech_log_table.parent_log_id%type := NULL;
-    g_log_name tech_log_table.name%type := NULL;
+    g_log_name tech_log_instances.name%type := NULL;
     
     PROCEDURE private_set_start_log_id(p_start_log_id_in IN tech_log_table.start_log_id%TYPE) IS
     BEGIN
@@ -90,8 +90,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                                    ,p_comments_in          IN tech_log_table.comments%TYPE
                                    ,p_clob_text_in         IN tech_log_table.clob_text%TYPE
                                    ,p_status_in            IN tech_log_table.status%TYPE
-                                   ,p_exception_message_in IN tech_log_table.exception_message%TYPE DEFAULT NULL
-                                   ,p_log_name_in          IN tech_log_table.name%TYPE DEFAULT NULL)
+                                   ,p_exception_message_in IN tech_log_table.exception_message%TYPE DEFAULT NULL)
         RETURN tech_log_table%ROWTYPE IS
         --
         v_log_record tech_log_table%ROWTYPE;
@@ -107,7 +106,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         v_log_record.comments          := p_comments_in;
         v_log_record.clob_text         := p_clob_text_in;
         v_log_record.exception_message := p_exception_message_in;
-        v_log_record.name              := p_log_name_in;
     
         RETURN v_log_record;
     END;
@@ -165,8 +163,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                                               ,p_end_ts_in       => NULL
                                               ,p_comments_in     => p_comments_in
                                               ,p_clob_text_in    => p_clob_text_in
-                                              ,p_status_in       => g_status_running
-                                              ,p_log_name_in     => g_log_name);
+                                              ,p_status_in       => g_status_running);
     
         private_ins_into_log_table(v_log_record);
     
@@ -224,7 +221,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                    ,p_row_count_in => p_row_count_in);
     END;
     
-    PROCEDURE set_log_name(p_name_in IN tech_log_table.name%TYPE) IS
+    PROCEDURE set_log_name(p_name_in IN tech_log_instances.name%TYPE) IS
     BEGIN
         IF g_log_name IS NULL
         THEN
@@ -232,7 +229,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         END IF;
     END;
     
-    FUNCTION get_log_name RETURN tech_log_table.name%TYPE IS
+    FUNCTION get_log_name RETURN tech_log_instances.name%TYPE IS
     BEGIN
         RETURN g_log_name;
     END;

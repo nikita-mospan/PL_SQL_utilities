@@ -41,7 +41,6 @@ SELECT
 	l.start_ts,
 	l.end_ts,
 	l.status as status,
-    l.name,
 	lpad('  ', (level - 1) * 2) || l.comments as comments,
 	l.clob_text,
     l.row_count,
@@ -51,9 +50,10 @@ FROM
 --where olg.olg_status = 'F'
 --where SUBSTR ( (olg.olg_end - olg.olg_start), 13, 9) >= '0:00:00.0'
 START WITH
-	l.log_id IN 4
+	l.log_id IN 1
 CONNECT BY
 	l.parent_log_id = PRIOR l.log_id
 ORDER SIBLINGS BY
 	l.log_id ASC;  
 
+select * from tech_log_instances ; 

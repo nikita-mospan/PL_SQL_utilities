@@ -21,8 +21,7 @@ begin
         '    sid NUMBER not null,' || chr(10) ||
         '    username varchar2(30) not null,' || chr(10) ||
         '    status varchar2(1 char),' || chr(10) ||
-        '    row_count number(12),' || chr(10) ||
-        '    name varchar2(32 char), ' || chr(10) ||
+        '    row_count number(12),' || chr(10) ||        
         '    comments varchar2(4000 char),' || chr(10) ||
         '    exception_message varchar2(4000 char),' || chr(10) ||
         '    clob_text CLOB,' || chr(10) ||
