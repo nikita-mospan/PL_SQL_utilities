@@ -1,59 +1,73 @@
-declare
-    v_sql varchar2(4000);
-    v_dummy pls_integer;
-begin
-    pk_util_log.stop_logging;
-    v_sql := 'select 1 from dual';
-    pk_util_log.set_log_name(p_name_in => 'Dummy log');
-    pk_util_log.open_next_level(p_comments_in => v_sql);
-    execute immediate v_sql into v_dummy;
-    pk_util_log.log_record(p_comments_in => 'Just a dummy record', p_status_in => pk_util_log.g_status_completed);
-    pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed, p_row_count_in => sql%rowcount);
-    dbms_output.put_line(pk_util_log.get_start_log_id);
-exception
-	when others then
-		pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
-        dbms_output.put_line(pk_util_log.get_start_log_id);
-		raise;
-end;
-/
+DECLARE
+    PROCEDURE b(p_name_in IN VARCHAR2) IS
+        v_dummy_cnt PLS_INTEGER;
+    BEGIN
+        pk_util_log.open_next_level(p_comments_in => 'procedure B(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
+                                                     'p_name_in: ' || p_name_in);
+        dbms_lock.sleep(10);
+        pk_util_log.close_level(p_status_in => 'C');
+    EXCEPTION
+        WHEN OTHERS THEN
+            pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+            RAISE;
+    END;
 
-declare
-    v_plsql_block varchar2(32767);
+    PROCEDURE a(p_name_in IN VARCHAR2) IS
+    BEGIN
+        pk_util_log.open_next_level('procedure A(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
+                                    'p_name_in: ' || p_name_in);
+        b('dummy_b');
+        dbms_lock.sleep(5);
+        pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
+    EXCEPTION
+        WHEN OTHERS THEN
+            pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+            RAISE;
+    END;
+
 BEGIN
-    v_plsql_block :=
-        'begin
-            pk_util_log.resume_logging(p_parent_log_id => 1);
-            pk_util_log.log_record(p_comments_in => ''Job record'', p_status_in => pk_util_log.g_status_completed);
-        end;';
-    dbms_scheduler.create_job(job_name        => 'resume_logging_job'
-                             ,job_type        => 'PLSQL_BLOCK'
-                             ,job_action      => v_plsql_block
-                             ,enabled         => TRUE
-                             , auto_drop => TRUE);
+    pk_util_log.stop_logging;
+    a('dummy_a');
+    dbms_output.put_line(pk_util_log.get_start_log_id);
 END;
 /
 
 SELECT    
-    l.start_log_id,
-	lpad('  ', (level - 1) * 2) || to_char(l.log_id) as log_id,
+	l.start_log_id,
+    LPAD (' ', 2* (LEVEL- 1)) || l.log_id,
     l.parent_log_id,
-	l.start_ts,
-	l.end_ts,
-	l.status as status,
-	lpad('  ', (level - 1) * 2) || l.comments as comments,
-	l.clob_text,
+    l.start_ts,
+    l.end_ts,
+    LPAD (' ', 2* (LEVEL- 1)) || SUBSTR ( (l.end_ts - l.start_ts), 13, 9) AS elapsed,
+    l.sid,
+    l.username,
+    l.status,
     l.row_count,
-	l.exception_message
+    LPAD (' ', 2* (LEVEL- 1)) || l.comments AS comments,
+    l.exception_message
 FROM
 	tech_log_table l
---where olg.olg_status = 'F'
---where SUBSTR ( (olg.olg_end - olg.olg_start), 13, 9) >= '0:00:00.0'
-START WITH
-	l.log_id IN 1
+START WITH l.log_id = 103
 CONNECT BY
 	l.parent_log_id = PRIOR l.log_id
 ORDER SIBLINGS BY
-	l.log_id ASC;  
+	l.log_id ASC;
 
-select * from tech_log_instances ; 
+declare
+    v_plsql_block varchar2(32767);
+    v_last_log_id tech_log_table.log_id%type;
+BEGIN
+    v_last_log_id  := pk_util_log.get_current_log_id;
+    dbms_output.put_line(v_last_log_id); 
+    v_plsql_block :=
+        'begin
+            pk_util_log.resume_logging(p_parent_log_id => #log_id#);
+            pk_util_log.log_record(p_comments_in => ''Job record'', p_status_in => pk_util_log.g_status_completed);
+        end;';
+    dbms_scheduler.create_job(job_name        => 'resume_logging_job'
+                             ,job_type        => 'PLSQL_BLOCK'
+                             ,job_action      => replace(v_plsql_block, '#log_id#', v_last_log_id)
+                             ,enabled         => TRUE
+                             , auto_drop => TRUE);
+END;
+/
