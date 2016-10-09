@@ -12,6 +12,15 @@ declare
     end create_if_not_exists;
     
 begin
+    
+    v_sql := 'create table log_instances (' || chr(10) ||
+            '    start_log_id number(16) not null,' || chr(10) ||
+            '    name varchar2(32 char),' || chr(10) ||
+            '    start_ts timestamp(6) not null,' || chr(10) ||
+            '    constraint log_instances_pk primary key(start_log_id))';
+    
+    create_if_not_exists(p_sql_in => v_sql);    
+
     v_sql := 'create table log_table (' || chr(10) ||
         '    start_log_id NUMBER(16) not null,' || chr(10) ||
         '    log_id  NUMBER(16),' || chr(10) ||
@@ -27,14 +36,19 @@ begin
         '    clob_text CLOB,' || chr(10) ||
         '    constraint log_table_id_pk primary key (log_id), ' || chr(10) ||
         '    constraint log_table_parent_id_fk foreign key (parent_log_id) references log_table(log_id), ' || chr(10) ||
-        '    constraint log_table_status_chck check (status in (''C''/*completed*/, ''R''/*running*/, ''F''/*failed*/))' || chr(10) ||
+        '    constraint log_table_status_chck check (status in (''C''/*completed*/, ''R''/*running*/, ''F''/*failed*/)),' || chr(10) ||
+        '    constraint log_table_start_log_id_fk foreign key (start_log_id) references log_instances(start_log_id)' || chr(10) ||
         ')' ;
     
     create_if_not_exists(p_sql_in => v_sql);
    
-    --index foreign key
+    --index foreign keys
     v_sql := 'create index log_table_parent_id_idx on log_table(parent_log_id)';    
     create_if_not_exists(p_sql_in => v_sql);
+    
+    v_sql := 'create index log_table_start_log_id_idx on log_table(start_log_id)';    
+    create_if_not_exists(p_sql_in => v_sql);
+    --
     
     v_sql := 'CREATE SEQUENCE SEQ_LOG_TABLE' || chr(10) ||
             '    START WITH 1' || chr(10) ||
@@ -46,15 +60,6 @@ begin
     
     create_if_not_exists(p_sql_in => v_sql);
     
-    v_sql := 'create table log_instances (' || chr(10) ||
-            '    start_log_id number(16) not null,' || chr(10) ||
-            '    name varchar2(32 char),' || chr(10) ||
-            '    start_ts timestamp(6) not null,' || chr(10) ||
-            '    constraint log_instances_pk primary key(start_log_id))';
-    
-    create_if_not_exists(p_sql_in => v_sql);
-
-
 exception 
     when others then
         dbms_output.put_line(v_sql);
