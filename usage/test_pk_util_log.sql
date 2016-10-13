@@ -32,10 +32,10 @@ DECLARE
         pk_util_log.open_next_level(p_comments_in => 'procedure B(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
                                                      'p_name_in: ' || p_name_in);
         dbms_lock.sleep(3);
-        pk_util_log.close_level(p_status_in => 'C');
+        pk_util_log.close_level_success;
     EXCEPTION
         WHEN OTHERS THEN
-            pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+            pk_util_log.close_level_fail;
             RAISE;
     END;
 
@@ -45,10 +45,10 @@ DECLARE
                                     'p_name_in: ' || p_name_in);
         b('dummy_b');
         dbms_lock.sleep(2);
-        pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
+        pk_util_log.close_level_success;
     EXCEPTION
         WHEN OTHERS THEN
-            pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+            pk_util_log.close_level_fail;
             RAISE;
     END;
 

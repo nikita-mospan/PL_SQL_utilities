@@ -247,6 +247,20 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         private_set_start_log_id(v_start_log_id);
         private_set_cur_log_id(p_parent_log_id);
     END;
+    
+    --Close level successfully
+    PROCEDURE close_level_success(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
+    BEGIN
+        close_level(p_status_in    => pk_util_log.g_status_completed
+                   ,p_row_count_in => p_row_count_in);
+    END;
+    
+    --Close level with failure
+    PROCEDURE close_level_fail(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
+    BEGIN
+        close_level(p_status_in    => pk_util_log.g_status_failed
+                   ,p_row_count_in => p_row_count_in);
+    END;
       
 END pk_util_log;
 /

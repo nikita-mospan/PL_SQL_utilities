@@ -44,6 +44,12 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     
     --Get current log_id for the session
     FUNCTION get_current_log_id RETURN tech_log_table.log_id%TYPE;
+    
+    --Close level successfully
+    PROCEDURE close_level_success(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
+    
+    --Close level with failure
+    PROCEDURE close_level_fail(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
 
 END pk_util_log;
 /
