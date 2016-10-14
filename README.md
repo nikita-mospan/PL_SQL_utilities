@@ -3,6 +3,8 @@
 
 The project's package "pk_util_log" allows to log runtimes of your PL/SQL units (anonymous blocks, functions, procedures). Moreover it provides ability to create parent/child relationship between calling PL/SQL unit and invoked unit. Thus a log hierarchy is created which is helpful in troubleshooting your PL/SQL processes. The code does not use any particular features of Oracle Enterprise Edition and should run fine on both Oracle Standard Edition and Enterprise Edition 11g or higher.
 
+I made YouTube video course about this package: https://www.youtube.com/playlist?list=PLegnw2i4tgeEDndrpMNSWns9aSO5CDJN1
+
 ## Installing / Getting started
 
 0. Source code (package, sequence and 2 tables) can be installed into your existing schema. This schema must have grants "CREATE PROCEDURE", "CREATE TABLE", "CREATE TABLE", "CREATE SEQUENCE", "CREATE PUBLIC SYNONYM". In this case you can skip point 1 (creation of technical user).
