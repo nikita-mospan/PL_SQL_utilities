@@ -50,6 +50,8 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     
     --Close level with failure
     PROCEDURE close_level_fail(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
+    
+    PROCEDURE add_clob_text(p_clob_text_in IN tech_log_table.clob_text%TYPE);
 
 END pk_util_log;
 /
