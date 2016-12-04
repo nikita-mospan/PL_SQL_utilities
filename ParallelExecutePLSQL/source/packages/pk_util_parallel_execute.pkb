@@ -144,18 +144,32 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                         declare
                             v_plsql_block CLOB;
                             v_item_id parallel_task_items.item_id%type;
+                            v_cur_log_id number;
+                            --
+                            procedure set_item_log_id is
+                                PRAGMA AUTONOMOUS_TRANSACTION;
+                            begin
+                                update parallel_task_items i set i.log_id = v_cur_log_id where i.item_id = :start_id;
+                                commit;
+                            exception when others then
+                                rollback;
+                                raise;
+                            end;
                         begin
                             select plsql_block, item_id into v_plsql_block, v_item_id 
                             from parallel_task_items i where i.item_id between :start_id and :end_id;
                             
                             pk_util_log.resume_logging(p_parent_log_id => #log_id#);
                             pk_util_log.open_next_level(p_comments_in => 'Executing item_id: ' || to_char(v_item_id));
+                            v_cur_log_id := pk_util_log.get_current_log_id;                            
+                            set_item_log_id;
                             
                             execute immediate v_plsql_block ;
                             
                             pk_util_log.close_level_success;
                         exception
     	                    when others then
+                                pk_util_log.add_clob_text(p_clob_text_in => v_plsql_block);
     		                    pk_util_log.close_level_fail;
     		                    raise;
                         end;]';
