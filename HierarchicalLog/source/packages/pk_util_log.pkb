@@ -261,6 +261,21 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         close_level(p_status_in    => pk_util_log.g_status_failed
                    ,p_row_count_in => p_row_count_in);
     END;
+    
+    ---
+    PROCEDURE add_clob_text(p_clob_text_in IN tech_log_table.clob_text%TYPE) IS
+        PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        UPDATE tech_log_table t
+        SET    t.clob_text = t.clob_text || p_clob_text_in
+        WHERE  t.log_id = g_current_log_id;
+        
+        COMMIT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END;
       
 END pk_util_log;
 /
