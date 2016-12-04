@@ -3,6 +3,12 @@ CREATE OR REPLACE PACKAGE pk_util_parallel_execute AUTHID CURRENT_USER AS
     e_task_failed exception;
     g_task_failed_err_code constant number := -20001;
     pragma exception_init(e_task_failed, -20001);
+    g_new_line constant varchar2(2) := chr(13) || chr(10);
+    g_status_new constant varchar2(1) := 'N';
+    g_status_completed constant varchar2(1) := 'C';
+    g_status_failed constant varchar2(1) := 'F';
+    g_status_running constant varchar2(1) := 'R';
+    g_exec_chunk_success_status constant user_parallel_execute_chunks.status%type := 'PROCESSED';
 
 	function create_task (p_task_prefix_in in varchar2
                         , p_comments_in in parallel_tasks.comments%type

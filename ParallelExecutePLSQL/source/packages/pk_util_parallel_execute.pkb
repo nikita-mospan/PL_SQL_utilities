@@ -1,11 +1,4 @@
 CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
-    
-    g_new_line constant varchar2(2) := chr(13) || chr(10);
-    g_status_new constant varchar2(1) := 'N';
-    g_status_completed constant varchar2(1) := 'C';
-    g_status_failed constant varchar2(1) := 'F';
-    g_exec_chunk_success_status constant user_parallel_execute_chunks.status%type := 'PROCESSED';
-	
     -----
     
     function create_task (p_task_prefix_in in varchar2
@@ -149,7 +142,11 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                             procedure set_item_log_id is
                                 PRAGMA AUTONOMOUS_TRANSACTION;
                             begin
-                                update parallel_task_items i set i.log_id = v_cur_log_id where i.item_id = :start_id;
+                                update parallel_task_items i 
+                                set i.log_id = v_cur_log_id,
+                                     i.status = pk_util_parallel_execute.g_status_running
+                                where i.item_id = :start_id;
+                                
                                 commit;
                             exception when others then
                                 rollback;
@@ -161,7 +158,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                             
                             pk_util_log.resume_logging(p_parent_log_id => #log_id#);
                             pk_util_log.open_next_level(p_comments_in => 'Executing item_id: ' || to_char(v_item_id));
-                            v_cur_log_id := pk_util_log.get_current_log_id;                            
+                            v_cur_log_id := pk_util_log.get_current_log_id;
+                                                        
                             set_item_log_id;
                             
                             execute immediate v_plsql_block ;
