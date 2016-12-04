@@ -4,6 +4,8 @@ create table parallel_tasks (
     , creation_date date default sysdate
     , status varchar2(1)
     , parallel_level integer not null
+    , start_of_execution date
+    , duration interval day (1) to second (0)
     , constraint parallel_task_name_pk primary key (task_name)
     , constraint parallel_task_status check (status in ('N', 'R', 'C', 'F'))
 )

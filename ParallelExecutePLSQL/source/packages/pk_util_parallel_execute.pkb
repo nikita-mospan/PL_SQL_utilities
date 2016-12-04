@@ -68,6 +68,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         v_plsql_task varchar2(32767);
         v_parallel_level parallel_tasks.parallel_level%type;
         v_cur_log_id tech_log_table.log_id%type;
+        v_execution_start date;
         --
         procedure set_chunk_for_items is
             PRAGMA AUTONOMOUS_TRANSACTION; 
@@ -91,7 +92,10 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         begin
             if dbms_parallel_execute.task_status(task_name => p_task_name_in) = dbms_parallel_execute.FINISHED then
                 update parallel_task_items i set i.status = g_status_completed where i.task_name = p_task_name_in;
-                update parallel_tasks t set t.status = g_status_completed where t.task_name = p_task_name_in;
+                update parallel_tasks t 
+                set t.status = g_status_completed 
+                    , t.duration = NUMTODSINTERVAL((sysdate - v_execution_start), 'day') 
+                where t.task_name = p_task_name_in;
             else
                 update parallel_task_items i set i.status = case
                                         (select up.status from user_parallel_execute_chunks up where up.TASK_NAME = p_task_name_in
@@ -111,6 +115,17 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                                     , p_status_in => g_status_failed);
         		raise;
         end task_post_processing;
+        --
+        procedure log_task_start_of_execution is
+            PRAGMA AUTONOMOUS_TRANSACTION; 
+        begin
+            update parallel_tasks t set t.start_of_execution = v_execution_start where t.task_name = p_task_name_in;
+            commit;
+        exception
+        	when others then
+        		rollback;
+        		raise;
+        end;
         --
     begin
         pk_util_log.open_next_level(p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.EXECUTE_TASK' || g_new_line ||
@@ -178,6 +193,9 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         
         v_cur_log_id := pk_util_log.get_current_log_id;
         
+        v_execution_start := sysdate;
+        log_task_start_of_execution;
+                
         dbms_parallel_execute.run_task(task_name => p_task_name_in
                                     , language_flag => dbms_sql.native
                                     , sql_stmt => replace(v_plsql_task, '#log_id#', to_char(v_cur_log_id))
