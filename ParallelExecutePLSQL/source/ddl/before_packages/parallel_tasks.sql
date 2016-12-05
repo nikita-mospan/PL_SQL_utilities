@@ -4,10 +4,12 @@ create table parallel_tasks (
     , creation_date date default sysdate
     , status varchar2(1)
     , parallel_level integer not null
+    , timeout_seconds number(16) not null
     , start_of_execution date
     , duration interval day (1) to second (0)
-    , constraint parallel_task_name_pk primary key (task_name)
-    , constraint parallel_task_status check (status in ('N', 'R', 'C', 'F'))
+    , constraint c_parallel_task_name_pk primary key (task_name)
+    , constraint c_parallel_task_status_chck check (status in ('N', 'R', 'C', 'F'))
+    , constraint c_timeout_seconds_chck check (timeout_seconds > 0 )
 )
 ;
 
@@ -19,9 +21,9 @@ create table parallel_task_items (
     , plsql_block CLOB
     , status varchar2(1)
     , creation_date date default sysdate
-    , constraint parallel_item_id_pk primary key (item_id)
-    , constraint parallel_task_name_fk foreign key (task_name) references parallel_tasks (task_name)
-    , constraint parallel_item_status check (status in ('N', 'R', 'C', 'F'))
+    , constraint c_parallel_item_id_pk primary key (item_id)
+    , constraint c_parallel_task_name_fk foreign key (task_name) references parallel_tasks (task_name)
+    , constraint c_parallel_item_status_chck check (status in ('N', 'R', 'C', 'F'))
 );
 
 CREATE SEQUENCE seq_parallel_item_id
