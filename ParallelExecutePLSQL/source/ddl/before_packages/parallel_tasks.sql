@@ -9,7 +9,7 @@ create table parallel_tasks (
     , duration interval day (1) to second (0)
     , constraint c_parallel_task_name_pk primary key (task_name)
     , constraint c_parallel_task_status_chck check (status in ('N', 'R', 'C', 'F'))
-    , constraint c_timeout_seconds_chck check (timeout_seconds > 0 )
+    , constraint c_timeout_seconds_chck check (timeout_seconds >= 0 )
 )
 ;
 
