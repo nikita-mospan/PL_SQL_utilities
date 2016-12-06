@@ -72,6 +72,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         v_cur_log_id tech_log_table.log_id%type;
         v_execution_start date;
         v_timeout_seconds parallel_tasks.timeout_seconds%type;
+        v_timeout_occured boolean :=  false;
         --
         procedure set_chunk_for_items is
             PRAGMA AUTONOMOUS_TRANSACTION; 
@@ -90,27 +91,30 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         end set_chunk_for_items;
         
         --
-        procedure task_post_processing is
+        procedure task_post_processing (p_status_in in parallel_tasks.status%type) is
             PRAGMA AUTONOMOUS_TRANSACTION; 
         begin
-            if dbms_parallel_execute.task_status(task_name => p_task_name_in) = dbms_parallel_execute.FINISHED then
-                update parallel_task_items i set i.status = g_status_completed where i.task_name = p_task_name_in;
-                update parallel_tasks t 
-                set t.status = g_status_completed 
-                    , t.duration = NUMTODSINTERVAL((sysdate - v_execution_start), 'day') 
-                where t.task_name = p_task_name_in;
-            else
-                update parallel_task_items i set i.status = case
+            update parallel_task_items i set i.status = case
                                         (select up.status from user_parallel_execute_chunks up where up.TASK_NAME = p_task_name_in
                                                                                 and up.START_ID = i.item_id)
                                         when g_exec_chunk_success_status then  g_status_completed
                                         else g_status_failed end
-                where i.task_name = p_task_name_in; 
-                update parallel_tasks t set t.status = g_status_failed where t.task_name =  p_task_name_in;
-                commit;
-                raise_application_error(g_task_failed_err_code, 'Task ' || p_task_name_in || ' failed! See PARALLEL_TASK_ITEMS for details');        
-            end if;
+                where i.task_name = p_task_name_in;
+                
+            update parallel_tasks t 
+                set t.status = p_status_in 
+                    , t.duration = case when p_status_in = g_status_completed then NUMTODSINTERVAL((sysdate - v_execution_start), 'day')
+                                    else null end 
+                where t.task_name = p_task_name_in;
             commit;
+            
+            if p_status_in = g_status_failed then  
+                if v_timeout_occured then
+                    raise_application_error(g_task_failed_due_timeout_code, 'Task ' || p_task_name_in || ' failed due to timeout! See PARALLEL_TASK_ITEMS for details');        
+                else              
+                    raise_application_error(g_task_failed_err_code, 'Task ' || p_task_name_in || ' failed! See PARALLEL_TASK_ITEMS for details');        
+                end if;
+            end if;
         exception
         	when others then
                 rollback;
@@ -141,7 +145,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         into v_parallel_level, v_timeout_seconds 
         from parallel_tasks t where t.task_name = p_task_name_in;
         
-        pk_util_log.log_record(p_comments_in => 'parallel_level: ' || to_char(v_parallel_level)
+        pk_util_log.log_record(p_comments_in => 'parallel_level: ' || to_char(v_parallel_level) || g_new_line ||
+                                                'timeout_seconds: ' || to_char(v_timeout_seconds)
                             , p_status_in => pk_util_log.g_status_completed);
         
         v_chunk_sql := replace(q'[select i.item_id, i.item_id from parallel_task_items i where i.task_name = '#task_name#']'
@@ -195,10 +200,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
     		                    raise;
                         end;]';       
         
-        v_cur_log_id := pk_util_log.get_current_log_id;
-        
-        v_execution_start := sysdate;
-        log_task_start_of_execution;
+        v_cur_log_id := pk_util_log.get_current_log_id;       
         
         v_plsql_task_run_str := q'[begin
                             dbms_parallel_execute.run_task(task_name => '#p_task_name_in#'
@@ -216,13 +218,44 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                             , p_clob_text_in => v_plsql_task_run_str
                             , p_status_in => pk_util_log.g_status_completed);
         
+        v_execution_start := sysdate;
+        log_task_start_of_execution;
+        
         if v_timeout_seconds = g_no_timeout then
             execute immediate v_plsql_task_run_str;
         else
-            null;
-        end if;
+            dbms_scheduler.create_job(job_name => p_task_name_in
+                                    , job_type => 'PLSQL_BLOCK'
+                                    , job_action => v_plsql_task_run_str
+                                    , enabled => TRUE);
+            
+            while (dbms_parallel_execute.task_status(task_name => p_task_name_in) not in
+                                            ( dbms_parallel_execute.FINISHED, dbms_parallel_execute.FINISHED_WITH_ERROR)) loop
+                if ( (sysdate - v_execution_start) * 24 * 60 * 60 > v_timeout_seconds ) then
+                    v_timeout_occured := true;
+                    for i in (select t.JOB_NAME from user_parallel_execute_chunks t where t.TASK_NAME = p_task_name_in) loop
+                        begin
+                            dbms_scheduler.stop_job(job_name => i.job_name
+                                                , force => TRUE);
+                        exception
+                        	when others then
+                        		pk_util_log.log_record(p_comments_in => 'Failed to stop job: ' || i.job_name
+                                                        , p_status_in => pk_util_log.g_status_failed);
+                        end;
+                    end loop;
+                    exit;
+                end if;
+                
+                dbms_lock.sleep(g_wait_timeout_sleep_secs);        
+            end loop; 
         
-        task_post_processing;                
+        end if;
+                
+        if (dbms_parallel_execute.task_status(task_name => p_task_name_in) = dbms_parallel_execute.FINISHED) then
+            task_post_processing(p_status_in => g_status_completed);
+        else
+            task_post_processing(p_status_in => g_status_failed);
+        end if;                
         
         pk_util_log.close_level_success;
     exception

@@ -23,3 +23,5 @@ GRANT DROP PUBLIC SYNONYM TO tech_user;
 GRANT CREATE JOB TO tech_user;
 
 GRANT EXECUTE ON DBMS_LOCK TO TECH_USER;
+
+grant manage scheduler to tech_user;
