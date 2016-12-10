@@ -233,12 +233,19 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                         declare
                             v_job_to_stop_timeout_items user_scheduler_jobs.job_name%type;
                             v_stop_item_job_action varchar2(32767);
+                            v_item_log_id tech_parallel_task_items.log_id%type;
                         begin
                             v_job_to_stop_timeout_items := dbms_scheduler.generate_job_name(prefix => v_task_prefix);
                             
-                            v_stop_item_job_action := replace(q'[begin
+                            select t.log_id into v_item_log_id 
+                            from tech_parallel_task_items t where t.item_id = i.item_id;
+                            
+                            v_stop_item_job_action := replace(replace(q'[begin
                                                             dbms_scheduler.stop_job(job_name => '#job_name#');
-                                                       end;]', '#job_name#', i.job_name);
+                                                            pk_util_log.resume_logging(p_parent_log_id => #log_id#);
+                                                            pk_util_log.close_level_fail;
+                                                       end;]', '#job_name#', i.job_name),
+                                                            '#log_id#' , to_char(v_item_log_id));
                             
                             dbms_scheduler.create_job(job_name => v_job_to_stop_timeout_items
                                                     , job_type => 'PLSQL_BLOCK'
