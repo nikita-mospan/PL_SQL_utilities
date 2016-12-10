@@ -22,3 +22,5 @@ from parallel_tasks t
     left join user_parallel_execute_chunks up on i.item_id = up.START_ID
 order by item_execution_duration desc nulls last
 ;
+
+create or replace public synonym tech_parallel_tasks_stats_v for tech_user.parallel_tasks_stats_v;

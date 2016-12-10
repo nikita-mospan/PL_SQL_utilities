@@ -1,5 +1,6 @@
 create table parallel_tasks (
-    task_name varchar2(128)
+    task_prefix varchar2(18) not null
+    , task_name varchar2(128)
     , comments varchar2(4000)
     , creation_date date default sysdate
     , status varchar2(1)
@@ -33,3 +34,6 @@ MINVALUE 1
 NOCYCLE
 CACHE 100
 NOORDER;
+
+create or replace public synonym tech_parallel_tasks for tech_user.parallel_tasks;
+create or replace public synonym tech_parallel_task_items for tech_user.parallel_task_items;

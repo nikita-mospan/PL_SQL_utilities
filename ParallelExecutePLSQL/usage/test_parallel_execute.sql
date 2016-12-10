@@ -5,8 +5,8 @@ drop table t;
 truncate table t;
 
 declare
-    v_task_name parallel_tasks.task_name%type;
-    v_item_id parallel_task_items.item_id%type;
+    v_task_name tech_parallel_tasks.task_name%type;
+    v_item_id tech_parallel_task_items.item_id%type;
 begin
     pk_util_log.stop_logging;
     pk_util_log.open_next_level(p_comments_in => 'test_parallel_execute');
@@ -47,7 +47,7 @@ SELECT
     l.exception_message
 FROM
 	tech_log_table l
-START WITH l.log_id = 816
+START WITH l.log_id = 921
 CONNECT BY
 	l.parent_log_id = PRIOR l.log_id
 ORDER SIBLINGS BY
@@ -60,14 +60,14 @@ where task_name = 'test226'
 order by chunk_id
 ;
 
-select * from parallel_tasks t where t.task_name = 'test226' ;
-select * from parallel_task_items i where i.task_name = 'test226' ;  
+select * from tech_parallel_tasks t where t.task_name = 'test226' ;
+select * from tech_parallel_task_items i where i.task_name = 'test226' ;  
 
 select * from user_scheduler_job_run_details t where t.JOB_NAME = 'TASK$_3528_1' ; 
 
 begin
-    delete from parallel_task_items;
-    delete from parallel_tasks;
+    delete from tech_parallel_task_items;
+    delete from tech_parallel_tasks;
     commit;
 end;
 /

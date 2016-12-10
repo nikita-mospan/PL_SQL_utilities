@@ -17,15 +17,15 @@ CREATE OR REPLACE PACKAGE pk_util_parallel_execute AUTHID CURRENT_USER AS
     g_no_timeout constant pls_integer := 0;
     g_wait_timeout_sleep_secs constant pls_integer := 3;
 
-	function create_task (p_task_prefix_in in varchar2
-                        , p_comments_in in parallel_tasks.comments%type
-                        , p_parallel_level_in in parallel_tasks.parallel_level%type
-                        , p_timeout_seconds_in in parallel_tasks.timeout_seconds%type default g_no_timeout) return varchar2;
+	function create_task (p_task_prefix_in in tech_parallel_tasks.task_prefix%type
+                        , p_comments_in in tech_parallel_tasks.comments%type
+                        , p_parallel_level_in in tech_parallel_tasks.parallel_level%type
+                        , p_timeout_seconds_in in tech_parallel_tasks.timeout_seconds%type default g_no_timeout) return varchar2;
     
-    function add_item_to_task (p_task_name_in in parallel_tasks.task_name%type
-                            , p_plsql_block_in in parallel_task_items.plsql_block%type) return number;
+    function add_item_to_task (p_task_name_in in tech_parallel_tasks.task_name%type
+                            , p_plsql_block_in in tech_parallel_task_items.plsql_block%type) return number;
     
-    procedure execute_task (p_task_name_in in varchar2);    
+    procedure execute_task (p_task_name_in in tech_parallel_tasks.task_name%type);    
                             
    
 END pk_util_parallel_execute;
