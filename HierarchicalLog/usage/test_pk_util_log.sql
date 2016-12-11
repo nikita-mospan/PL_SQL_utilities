@@ -24,7 +24,7 @@ ORDER SIBLINGS BY
 select * from tech_log_instances ; 
 
 --basic logging example
---note: the shcema must have execute grant on pk_util_log package
+--note: the schema must have execute grant on pk_util_log package
 DECLARE
     PROCEDURE b(p_name_in IN VARCHAR2) IS
         v_dummy_cnt PLS_INTEGER;
@@ -67,6 +67,7 @@ BEGIN
     pk_util_log.stop_logging;
     pk_util_log.set_log_name(p_name_in => 'sql_rowcount_example');
     pk_util_log.open_next_level(p_comments_in => v_sql);
+    dbms_output.put_line(pk_util_log.get_start_log_id); 
     execute immediate v_sql into v_dummy_value;
     pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed, p_row_count_in => sql%rowcount);
 EXCEPTION
@@ -77,7 +78,7 @@ END;
 /
 
 --resume logging example
---note: the shcema must have grants to create dbms_scheduler jobs. For details please refer to Oracle documentation
+--note: the schema must have grants to create dbms_scheduler jobs.
 declare
     v_plsql_block varchar2(32767);
     v_last_log_id tech_log_table.log_id%type;
@@ -86,6 +87,7 @@ BEGIN
     pk_util_log.stop_logging;
     pk_util_log.set_log_name('resume_logging_example');
     pk_util_log.open_next_level(p_comments_in => 'Some comment');
+    dbms_output.put_line(pk_util_log.get_start_log_id); 
     v_cur_log_id := pk_util_log.get_current_log_id;
     for i  in 1 .. 5 loop
         v_plsql_block :=
