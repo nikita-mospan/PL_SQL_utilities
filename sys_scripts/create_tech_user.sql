@@ -20,6 +20,7 @@ GRANT CREATE PUBLIC SYNONYM TO tech_user;
 
 GRANT DROP PUBLIC SYNONYM TO tech_user;
 
+--grants needed for pk_util_parallel_execute package
 GRANT CREATE JOB TO tech_user;
 
 GRANT EXECUTE ON DBMS_LOCK TO TECH_USER;
