@@ -1,1 +1,0 @@
-@@ddl/drop_tech_log_tables_and_packages.sql
