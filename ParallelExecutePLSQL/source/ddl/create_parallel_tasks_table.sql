@@ -35,5 +35,6 @@ NOCYCLE
 CACHE 100
 NOORDER;
 
-create or replace public synonym tech_parallel_tasks for tech_user.parallel_tasks;
-create or replace public synonym tech_parallel_task_items for tech_user.parallel_task_items;
+create or replace public synonym tech_parallel_tasks for parallel_tasks;
+create or replace public synonym tech_parallel_task_items for parallel_task_items;
+create or replace public synonym tech_seq_parallel_item_id for seq_parallel_item_id;

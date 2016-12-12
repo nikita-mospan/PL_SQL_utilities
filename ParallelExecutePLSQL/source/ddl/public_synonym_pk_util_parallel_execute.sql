@@ -1,0 +1,1 @@
+create or replace public synonym pk_util_parallel_execute for pk_util_parallel_execute;

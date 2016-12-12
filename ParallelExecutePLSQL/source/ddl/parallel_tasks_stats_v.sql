@@ -23,4 +23,4 @@ from parallel_tasks t
 order by item_execution_duration desc nulls last
 ;
 
-create or replace public synonym tech_parallel_tasks_stats_v for tech_user.parallel_tasks_stats_v;
+create or replace public synonym tech_parallel_tasks_stats_v for parallel_tasks_stats_v;

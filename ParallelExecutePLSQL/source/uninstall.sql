@@ -1,0 +1,1 @@
+@@ddl/drop_parallel_tasks_metadata.sql
