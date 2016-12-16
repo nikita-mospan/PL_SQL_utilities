@@ -5,7 +5,7 @@ The project's package "pk_util_parallel_execute" allows to run your PL/SQL units
 
 ## Installing / Uninstalling
 
-Source code can be installed into your existing schema. This schema must have grants "CREATE PROCEDURE", "CREATE TABLE", "CREATE TABLE", "CREATE SEQUENCE", "CREATE PUBLIC SYNONYM", "CREATE JOB", "EXECUTE on DBMS_LOCK", "MANAGE SCHEDULER". In this case you can skip point 1 (creation of technical user).
+Source code can be installed into your existing schema. This schema must have grants "CREATE PROCEDURE", "CREATE TABLE", "CREATE TABLE", "CREATE SEQUENCE", "CREATE PUBLIC SYNONYM", "CREATE JOB", "EXECUTE on DBMS_LOCK", "MANAGE SCHEDULER".
 The preferrable way is to create separate schema (I call it TECH_USER). Open your command line, go to the PL_SQL_utilities/sys_scripts. Then connect to your database under SYS schema via sqlplus and run "@create_tech_user.sql".
 ```shell
 SYS@ora12c> @create_tech_user.sql

@@ -5,17 +5,17 @@ The project's package "pk_util_log" allows to log runtimes of your PL/SQL units 
 
 ## Installing / Uninstalling
 
-0. Source code (package, sequence and 2 tables) can be installed into your existing schema. This schema must have grants "CREATE PROCEDURE", "CREATE TABLE", "CREATE TABLE", "CREATE SEQUENCE", "CREATE PUBLIC SYNONYM". In this case you can skip point 1 (creation of technical user).
-1. The preferrable way is to create separate schema (I call it TECH_USER). Open your command line, go to the PL_SQL_utilities/sys_scripts. Then connect to your database under SYS schema via sqlplus and run "@create_tech_user.sql".
+Source code (package, sequence and 2 tables) can be installed into your existing schema. This schema must have grants "CREATE PROCEDURE", "CREATE TABLE", "CREATE TABLE", "CREATE SEQUENCE", "CREATE PUBLIC SYNONYM". 
+The preferrable way is to create separate schema (I call it TECH_USER). Open your command line, go to the PL_SQL_utilities/sys_scripts. Then connect to your database under SYS schema via sqlplus and run "@create_tech_user.sql".
 ```shell
 SYS@ora12c> @create_tech_user.sql
 ```
-2. Created TECH_USER has default password "tech_user". You might consider changing it.
-3. Go to PL_SQL_utilities/HierarchicalLog directory of the project. Then connect to your database under TECH_USER or your own schema (see point 0). Run "@install.sql"
+Created TECH_USER has default password "tech_user". You might consider changing it.
+Go to PL_SQL_utilities/HierarchicalLog directory of the project. Then connect to your database under TECH_USER or your own schema (see point 0). Run "@install.sql"
 ```shell
 TECH_USER@ora12c> @install.sql
 ```
-4. To uninstall (drop pk_util_package and logging tables) go to PL_SQL_utilities/HierarchicalLog directory of the project. Then connect to your database under TECH_USER or your own schema (see point 0). Run "@uninstall.sql"
+To uninstall (drop pk_util_package and logging tables) go to PL_SQL_utilities/HierarchicalLog directory of the project. Then connect to your database under TECH_USER or your own schema (if you made installation to that schema). Run "@uninstall.sql"
 ```shell
 TECH_USER@ora12c> @uninstall.sql
 ```
