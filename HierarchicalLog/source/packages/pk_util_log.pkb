@@ -68,11 +68,13 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         INSERT INTO tech_log_instances
             (start_log_id
             ,NAME
-            ,start_ts)
+            ,start_ts
+            ,log_date)
         VALUES
             (p_start_log_id_in
             ,p_name_in
-            ,p_start_ts_in);
+            ,p_start_ts_in
+            ,trunc(p_start_ts_in));
         COMMIT;
     EXCEPTION
         WHEN OTHERS THEN
@@ -106,6 +108,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         v_log_record.comments          := p_comments_in;
         v_log_record.clob_text         := p_clob_text_in;
         v_log_record.exception_message := p_exception_message_in;
+        v_log_record.log_date          := trunc(p_start_ts_in);  
     
         RETURN v_log_record;
     END;

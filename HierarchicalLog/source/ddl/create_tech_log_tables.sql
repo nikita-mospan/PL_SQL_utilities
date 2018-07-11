@@ -2,9 +2,8 @@ create table log_instances (
     start_log_id number(16) not null
     , name varchar2(32 char)
     , start_ts timestamp(6) not null
+    , log_date date not null
     , constraint log_instances_pk primary key(start_log_id));
-    
-    
 
 create table log_table (
     start_log_id NUMBER(16) not null,
@@ -19,15 +18,19 @@ create table log_table (
     comments varchar2(4000 char),
     exception_message varchar2(4000 char),
     clob_text CLOB,
-    constraint log_table_id_pk primary key (log_id), 
-    constraint log_table_parent_id_fk foreign key (parent_log_id) references log_table(log_id), 
-    constraint log_table_status_chck check (status in ('C'/*completed*/, 'R'/*running*/, 'F'/*failed*/)),
-    constraint log_table_start_log_id_fk foreign key (start_log_id) references log_instances(start_log_id)
-);
+    log_date date not null,
+    constraint log_table_status_chck check (status in ('C'/*completed*/, 'R'/*running*/, 'F'/*failed*/))
+)
+partition by range (log_date)
+interval(NUMTODSINTERVAL(7,'day'))
+(partition p_fst_day_of_week values less than (date '2018-07-09'))
+;
+
+create index log_table_log_id_idx on log_table(log_id) local;
     
-create index log_table_parent_id_idx on log_table(parent_log_id);
+create index log_table_parent_id_idx on log_table(parent_log_id) local;
     
-create index log_table_start_log_id_idx on log_table(start_log_id);
+create index log_table_start_log_id_idx on log_table(start_log_id) local;
         
 CREATE SEQUENCE SEQ_LOG_TABLE
     START WITH 1
