@@ -123,7 +123,15 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                                       ,p_name_in         => g_log_name
                                       ,p_start_ts_in     => systimestamp);
     END;
-
+    
+    PROCEDURE private_set_log_name(p_name_in IN tech_log_instances.name%TYPE) IS
+    BEGIN
+        IF g_log_name IS NULL
+        THEN
+            g_log_name := p_name_in;
+        END IF;
+    END;
+    
     FUNCTION get_start_log_id RETURN tech_log_table.start_log_id%TYPE IS
     BEGIN
         RETURN g_start_log_id;
@@ -135,11 +143,12 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     END;
     
     --Procedure clears session logging variables, so that the next logging attempt will be made into the new logging hierarchy
-    PROCEDURE stop_logging IS
+    PROCEDURE start_logging(p_log_name_in IN tech_log_instances.name%type) IS
     BEGIN
         private_set_start_log_id(NULL);
         private_set_cur_log_id(NULL);
         private_set_parent_log_id(NULL);
+        private_set_log_name(p_log_name_in);
     END;
     
     --Procedure creates next level of the logging hierarchy.
@@ -222,14 +231,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                        ,p_clob_text_in => p_clob_text_in);
         close_level(p_status_in    => p_status_in
                    ,p_row_count_in => p_row_count_in);
-    END;
-    
-    PROCEDURE set_log_name(p_name_in IN tech_log_instances.name%TYPE) IS
-    BEGIN
-        IF g_log_name IS NULL
-        THEN
-            g_log_name := p_name_in;
-        END IF;
     END;
     
     FUNCTION get_log_name RETURN tech_log_instances.name%TYPE IS

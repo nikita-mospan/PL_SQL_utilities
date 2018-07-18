@@ -11,7 +11,7 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     g_status_failed    CONSTANT VARCHAR2(1) := 'F';
     
     --Procedure clears session logging variables, so that the next logging attempt will be made into the new logging hierarchy
-    PROCEDURE stop_logging;
+    PROCEDURE start_logging(p_log_name_in IN tech_log_instances.name%type);
     
     --procedure initializes logging context in case you created a separate session (for ex. via dbms_scheduler) 
     --and you want this session to write into the same logging hierarchy instance
@@ -35,9 +35,6 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
                         ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL
                         ,p_status_in    IN tech_log_table.status%TYPE
                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
-    
-    --Procedure sets the name for logging hierarchy instance
-    PROCEDURE set_log_name(p_name_in IN tech_log_instances.name%TYPE);
     
     --Procedure gets the name of the logging hierarchy instance
     FUNCTION get_log_name RETURN tech_log_instances.name%TYPE;

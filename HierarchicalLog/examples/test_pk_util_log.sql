@@ -53,7 +53,7 @@ DECLARE
     END;
 
 BEGIN
-    pk_util_log.stop_logging;
+    pk_util_log.start_logging('Test log');
     a('dummy_a');
     dbms_output.put_line(pk_util_log.get_start_log_id);
 END;
@@ -64,8 +64,7 @@ declare
     v_sql varchar2(32767) := 'select 1 from dual';
     v_dummy_value pls_integer;
 BEGIN
-    pk_util_log.stop_logging;
-    pk_util_log.set_log_name(p_name_in => 'sql_rowcount_example');
+    pk_util_log.start_logging('sql_rowcount_example');
     pk_util_log.open_next_level(p_comments_in => v_sql);
     dbms_output.put_line(pk_util_log.get_start_log_id); 
     execute immediate v_sql into v_dummy_value;
@@ -84,8 +83,7 @@ declare
     v_last_log_id tech_log_table.log_id%type;
     v_cur_log_id tech_log_table.log_id%type;
 BEGIN
-    pk_util_log.stop_logging;
-    pk_util_log.set_log_name('resume_logging_example');
+    pk_util_log.start_logging('resume_logging_example');
     pk_util_log.open_next_level(p_comments_in => 'Some comment');
     dbms_output.put_line(pk_util_log.get_start_log_id); 
     v_cur_log_id := pk_util_log.get_current_log_id;
