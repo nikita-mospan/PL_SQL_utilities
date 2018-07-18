@@ -35,10 +35,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         VALUES p_log_record_in;
     
         COMMIT;
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
     END;
     
     PROCEDURE private_upd_log_table(p_status_in            IN tech_log_table.status%TYPE
@@ -54,10 +50,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
               ,t.end_ts            = systimestamp
         WHERE  log_id = p_log_id_in;
         COMMIT;
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
     END;
     
     PROCEDURE private_ins_into_log_instances(p_start_log_id_in IN tech_log_instances.start_log_id%TYPE
@@ -76,10 +68,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
             ,p_start_ts_in
             ,trunc(p_start_ts_in));
         COMMIT;
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
     END;
     
     --------------------
@@ -275,10 +263,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         WHERE  t.log_id = g_current_log_id;
         
         COMMIT;
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
     END;
       
 END pk_util_log;
