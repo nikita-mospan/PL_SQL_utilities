@@ -6,7 +6,6 @@ create table log_instances (
     , constraint log_instances_pk primary key(start_log_id));
 
 create table log_table (
-    start_log_id NUMBER(16) not null,
     log_id  NUMBER(16),
     parent_log_id NUMBER(16),
     start_ts timestamp(6) not null,
@@ -29,8 +28,6 @@ interval(NUMTODSINTERVAL(7,'day'))
 create index log_table_log_id_idx on log_table(log_id) local;
     
 create index log_table_parent_id_idx on log_table(parent_log_id) local;
-    
-create index log_table_start_log_id_idx on log_table(start_log_id) local;
         
 CREATE SEQUENCE SEQ_LOG_TABLE
     START WITH 1

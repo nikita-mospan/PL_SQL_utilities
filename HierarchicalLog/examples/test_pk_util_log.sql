@@ -1,6 +1,5 @@
 --main hierarchical query
-SELECT    
-    l.start_log_id,
+SELECT
     LPAD (' ', 2* (LEVEL- 1)) || l.log_id as log_id,
     l.parent_log_id,
     l.start_ts,

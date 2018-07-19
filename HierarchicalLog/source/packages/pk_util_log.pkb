@@ -5,12 +5,13 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     --2.    Parent log_id to have connection with the parent log entry.
     --3.	Start log_id which is a root of the logging hierarchy.
 
-	g_start_log_id tech_log_table.start_log_id%type := NULL;
+	g_start_log_id tech_log_instances.start_log_id%type := NULL;
     g_current_log_id tech_log_table.log_id%type := NULL;
     g_parent_log_id tech_log_table.parent_log_id%type := NULL;
     g_log_name tech_log_instances.name%type := NULL;
+    g_is_first_log_entry boolean := true;
     
-    PROCEDURE private_set_start_log_id(p_start_log_id_in IN tech_log_table.start_log_id%TYPE) IS
+    PROCEDURE private_set_start_log_id(p_start_log_id_in IN tech_log_instances.start_log_id%TYPE) IS
     BEGIN
         g_start_log_id := p_start_log_id_in;
     END;
@@ -72,8 +73,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     
     --------------------
     
-    FUNCTION private_get_log_record(p_start_log_id_in      IN tech_log_table.start_log_id%TYPE
-                                   ,p_log_id_in            IN tech_log_table.log_id%TYPE
+    FUNCTION private_get_log_record(p_log_id_in            IN tech_log_table.log_id%TYPE
                                    ,p_parent_log_id        IN tech_log_table.parent_log_id%TYPE
                                    ,p_start_ts_in          IN tech_log_table.start_ts%TYPE
                                    ,p_end_ts_in            IN tech_log_table.end_ts%TYPE
@@ -85,13 +85,12 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         --
         v_log_record tech_log_table%ROWTYPE;
     BEGIN
-        v_log_record.start_log_id      := p_start_log_id_in;
         v_log_record.log_id            := p_log_id_in;
         v_log_record.parent_log_id     := p_parent_log_id;
         v_log_record.start_ts          := p_start_ts_in;
         v_log_record.end_ts            := p_end_ts_in;
         v_log_record.sid               := to_number(SYS_CONTEXT('userenv', 'SID'));
-        v_log_record.username          := SYS_CONTEXT('userenv', 'SESSION_USER');
+        v_log_record.username          := SYS_CONTEXT('userenv', 'os_user');
         v_log_record.status            := p_status_in;
         v_log_record.comments          := p_comments_in;
         v_log_record.clob_text         := p_clob_text_in;
@@ -99,17 +98,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         v_log_record.log_date          := trunc(p_start_ts_in);  
     
         RETURN v_log_record;
-    END;
-        
-    --
-    PROCEDURE private_start_logging IS
-    BEGIN
-        g_start_log_id := tech_log_table_seq.nextval;
-        private_set_cur_log_id(g_start_log_id);
-        private_set_parent_log_id(NULL);
-        private_ins_into_log_instances(p_start_log_id_in => g_start_log_id
-                                      ,p_name_in         => g_log_name
-                                      ,p_start_ts_in     => systimestamp);
     END;
     
     PROCEDURE private_set_log_name(p_name_in IN tech_log_instances.name%TYPE) IS
@@ -120,7 +108,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         END IF;
     END;
     
-    FUNCTION get_start_log_id RETURN tech_log_table.start_log_id%TYPE IS
+    FUNCTION get_start_log_id RETURN tech_log_instances.start_log_id%TYPE IS
     BEGIN
         RETURN g_start_log_id;
     END;
@@ -133,10 +121,14 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     --Procedure clears session logging variables, so that the next logging attempt will be made into the new logging hierarchy
     PROCEDURE start_logging(p_log_name_in IN tech_log_instances.name%type) IS
     BEGIN
-        private_set_start_log_id(NULL);
-        private_set_cur_log_id(NULL);
+        g_is_first_log_entry := true;
+        g_start_log_id := tech_log_table_seq.nextval;
+        private_set_cur_log_id(g_start_log_id);
         private_set_parent_log_id(NULL);
         private_set_log_name(p_log_name_in);
+        private_ins_into_log_instances(p_start_log_id_in => g_start_log_id
+                                      ,p_name_in         => g_log_name
+                                      ,p_start_ts_in     => systimestamp);
     END;
     
     --Procedure creates next level of the logging hierarchy.
@@ -148,16 +140,14 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         dbms_application_info.set_action(action_name => g_log_name);
         dbms_application_info.set_client_info(client_info => p_comments_in);
         
-        IF g_start_log_id IS NULL
-        THEN
-            private_start_logging;
+        IF g_is_first_log_entry THEN            
+            g_is_first_log_entry := false;
         ELSE
             private_set_parent_log_id(g_current_log_id);
             private_set_cur_log_id(tech_log_table_seq.nextval);
         END IF;
     
-        v_log_record := private_get_log_record(p_start_log_id_in => g_start_log_id
-                                              ,p_log_id_in       => g_current_log_id
+        v_log_record := private_get_log_record(p_log_id_in       => g_current_log_id
                                               ,p_parent_log_id   => g_parent_log_id
                                               ,p_start_ts_in     => systimestamp
                                               ,p_end_ts_in       => NULL
@@ -175,12 +165,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                          ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
         v_exception_message tech_log_table.exception_message%TYPE;
         v_new_parent_log_id tech_log_table.parent_log_id%TYPE := NULL;
-    BEGIN
-        IF g_start_log_id IS NULL
-        THEN
-            RETURN;
-        END IF;
-        
+    BEGIN        
         dbms_application_info.set_action(action_name => NULL);
         dbms_application_info.set_client_info(client_info => NULL);
     
@@ -229,14 +214,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     --procedure initializes logging context in case you created a separate session (for ex. via dbms_scheduler) 
     --and you want this session to write into the same logging hierarchy instance
     PROCEDURE resume_logging(p_parent_log_id IN tech_log_table.parent_log_id%TYPE) IS
-        v_start_log_id tech_log_table.start_log_id%TYPE;
-    BEGIN
-        SELECT t.start_log_id
-        INTO   v_start_log_id
-        FROM   tech_log_table t
-        WHERE  t.log_id = p_parent_log_id;
-        
-        private_set_start_log_id(v_start_log_id);
+    BEGIN        
+        g_is_first_log_entry := false;
         private_set_cur_log_id(p_parent_log_id);
     END;
     

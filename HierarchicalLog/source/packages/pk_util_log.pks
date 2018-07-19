@@ -18,7 +18,7 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     PROCEDURE resume_logging(p_parent_log_id IN tech_log_table.parent_log_id%TYPE);
     
     --Get root log_id of hierarchy instance
-    FUNCTION get_start_log_id RETURN tech_log_table.start_log_id%TYPE;
+    FUNCTION get_start_log_id RETURN tech_log_instances.start_log_id%TYPE;
     
     --Procedure creates next level of the logging hierarchy.
     --It creates new instance of logging hierarchy if it does not exist
