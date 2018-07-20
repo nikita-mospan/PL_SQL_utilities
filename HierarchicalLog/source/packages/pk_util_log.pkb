@@ -11,23 +11,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     g_log_name tech_log_instances.name%type := NULL;
     g_is_first_log_entry boolean := true;
     
-    PROCEDURE private_set_start_log_id(p_start_log_id_in IN tech_log_instances.start_log_id%TYPE) IS
-    BEGIN
-        g_start_log_id := p_start_log_id_in;
-    END;
-    
-    PROCEDURE private_set_cur_log_id(p_log_id_in IN tech_log_table.log_id%TYPE) IS
-    BEGIN
-        g_current_log_id := p_log_id_in;
-    END;
-    
-    PROCEDURE private_set_parent_log_id(p_parent_log_id_in IN tech_log_table.parent_log_id%TYPE) IS
-    BEGIN
-        g_parent_log_id := p_parent_log_id_in;
-    END;    
-    
-    ------
-    
     --Insertion into/update of into log_table is made in autonomous transaction to preserve the changes even in case of exception
     PROCEDURE private_ins_into_log_table(p_log_record_in IN tech_log_table%ROWTYPE) IS
         PRAGMA AUTONOMOUS_TRANSACTION;
@@ -100,14 +83,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         RETURN v_log_record;
     END;
     
-    PROCEDURE private_set_log_name(p_name_in IN tech_log_instances.name%TYPE) IS
-    BEGIN
-        IF g_log_name IS NULL
-        THEN
-            g_log_name := p_name_in;
-        END IF;
-    END;
-    
     FUNCTION get_start_log_id RETURN tech_log_instances.start_log_id%TYPE IS
     BEGIN
         RETURN g_start_log_id;
@@ -123,9 +98,9 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     BEGIN
         g_is_first_log_entry := true;
         g_start_log_id := tech_log_table_seq.nextval;
-        private_set_cur_log_id(g_start_log_id);
-        private_set_parent_log_id(NULL);
-        private_set_log_name(p_log_name_in);
+        g_current_log_id := g_start_log_id;
+        g_parent_log_id := NULL;
+        g_log_name := p_log_name_in;
         private_ins_into_log_instances(p_start_log_id_in => g_start_log_id
                                       ,p_name_in         => g_log_name
                                       ,p_start_ts_in     => systimestamp);
@@ -143,8 +118,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         IF g_is_first_log_entry THEN            
             g_is_first_log_entry := false;
         ELSE
-            private_set_parent_log_id(g_current_log_id);
-            private_set_cur_log_id(tech_log_table_seq.nextval);
+            g_parent_log_id := g_current_log_id;
+            g_current_log_id := tech_log_table_seq.nextval;
         END IF;
     
         v_log_record := private_get_log_record(p_log_id_in       => g_current_log_id
@@ -181,7 +156,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                              ,p_log_id_in            => g_current_log_id
                              ,p_row_count_in         => p_row_count_in);
     
-        private_set_cur_log_id(nvl(g_parent_log_id, g_start_log_id));
+        g_current_log_id := nvl(g_parent_log_id, g_start_log_id);
         
         IF g_parent_log_id IS NOT NULL THEN
             SELECT t.parent_log_id
@@ -190,7 +165,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
             WHERE  t.log_id = g_parent_log_id;
         END IF;
     
-        private_set_parent_log_id(v_new_parent_log_id);
+        g_parent_log_id := v_new_parent_log_id;
     
     END close_level;
     
@@ -216,7 +191,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     PROCEDURE resume_logging(p_parent_log_id IN tech_log_table.parent_log_id%TYPE) IS
     BEGIN        
         g_is_first_log_entry := false;
-        private_set_cur_log_id(p_parent_log_id);
+        g_current_log_id := p_parent_log_id;
     END;
     
     --Close level successfully
