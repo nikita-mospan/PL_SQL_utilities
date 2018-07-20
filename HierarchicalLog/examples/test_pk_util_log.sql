@@ -1,16 +1,16 @@
 --main hierarchical query
 SELECT
-    LPAD (' ', 2* (LEVEL- 1)) || l.log_id as log_id,
-    l.parent_log_id,
+    LPAD (' ', 2* (LEVEL- 1)) || l.action_name,
+    l.status,
     l.start_ts,
     l.end_ts,
-    LPAD (' ', 2* (LEVEL- 1)) || SUBSTR ( (l.end_ts - l.start_ts), 13, 9) AS elapsed,
-    l.sid,
-    l.username,
-    l.status,
+    l.end_ts - l.start_ts AS elapsed,
     l.row_count,
-    LPAD (' ', 2* (LEVEL- 1)) || l.comments AS comments,
-    l.exception_message
+    l.comments,
+    l.exception_message,
+    l.clob_text,
+    l.sid,
+    l.username
 FROM
     tech_log_table l
 START WITH l.log_id = &start_log_id
@@ -28,7 +28,8 @@ DECLARE
     PROCEDURE b(p_name_in IN VARCHAR2) IS
         v_dummy_cnt PLS_INTEGER;
     BEGIN
-        pk_util_log.open_next_level(p_comments_in => 'procedure B(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
+        pk_util_log.open_next_level(p_action_name_in => 'In procedure b()',
+                        p_comments_in => 'procedure B(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
                                                      'p_name_in: ' || p_name_in);
         dbms_lock.sleep(3);
         pk_util_log.close_level_success;
@@ -40,7 +41,8 @@ DECLARE
 
     PROCEDURE a(p_name_in IN VARCHAR2) IS
     BEGIN
-        pk_util_log.open_next_level('procedure A(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
+        pk_util_log.open_next_level(p_action_name_in => 'In procedure a()',
+                            p_comments_in => 'procedure A(), line: ' || $$PLSQL_LINE || chr(13) || chr(10) ||
                                     'p_name_in: ' || p_name_in);
         b('dummy_b');
         dbms_lock.sleep(2);
@@ -64,7 +66,8 @@ declare
     v_dummy_value pls_integer;
 BEGIN
     pk_util_log.start_logging('sql_rowcount_example');
-    pk_util_log.open_next_level(p_comments_in => v_sql);
+    pk_util_log.open_next_level(p_action_name_in => 'Log sql',
+                        p_comments_in => v_sql);
     dbms_output.put_line(pk_util_log.get_start_log_id); 
     execute immediate v_sql into v_dummy_value;
     pk_util_log.close_level_success(p_row_count_in => sql%rowcount);
@@ -83,14 +86,14 @@ declare
     v_cur_log_id tech_log_table.log_id%type;
 BEGIN
     pk_util_log.start_logging('resume_logging_example');
-    pk_util_log.open_next_level(p_comments_in => 'Some comment');
+    pk_util_log.open_next_level(p_action_name_in => 'Prepare to start jobs');
     dbms_output.put_line(pk_util_log.get_start_log_id); 
     v_cur_log_id := pk_util_log.get_current_log_id;
     for i  in 1 .. 5 loop
         v_plsql_block :=
             'begin
                 pk_util_log.resume_logging(p_parent_log_id => #log_id#);
-                pk_util_log.open_next_level(p_comments_in => ''Job record'');
+                pk_util_log.open_next_level(p_action_name_in => ''Job record'');
                 dbms_lock.sleep(#i#);
                 pk_util_log.close_level_success;
             exception

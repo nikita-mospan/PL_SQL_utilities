@@ -63,7 +63,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                                    ,p_comments_in          IN tech_log_table.comments%TYPE
                                    ,p_clob_text_in         IN tech_log_table.clob_text%TYPE
                                    ,p_status_in            IN tech_log_table.status%TYPE
-                                   ,p_exception_message_in IN tech_log_table.exception_message%TYPE DEFAULT NULL)
+                                   ,p_exception_message_in IN tech_log_table.exception_message%TYPE DEFAULT NULL
+                                   ,p_action_name_in        IN tech_log_table.action_name%TYPE)
         RETURN tech_log_table%ROWTYPE IS
         --
         v_log_record tech_log_table%ROWTYPE;
@@ -78,7 +79,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         v_log_record.comments          := p_comments_in;
         v_log_record.clob_text         := p_clob_text_in;
         v_log_record.exception_message := p_exception_message_in;
-        v_log_record.log_date          := trunc(p_start_ts_in);  
+        v_log_record.log_date          := trunc(p_start_ts_in);
+        v_log_record.action_name       := p_action_name_in;   
     
         RETURN v_log_record;
     END;
@@ -108,12 +110,12 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     
     --Procedure creates next level of the logging hierarchy.
     --It creates new instance of logging hierarchy if it does not exist
-    PROCEDURE open_next_level(p_comments_in  IN tech_log_table.comments%TYPE
+    PROCEDURE open_next_level(p_action_name_in IN tech_log_table.action_name%TYPE
+                             ,p_comments_in  IN tech_log_table.comments%TYPE DEFAULT NULL
                              ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL) IS
         v_log_record tech_log_table%ROWTYPE;
     BEGIN
-        dbms_application_info.set_action(action_name => g_log_name);
-        dbms_application_info.set_client_info(client_info => p_comments_in);
+        dbms_application_info.set_action(action_name => p_action_name_in);
         
         IF g_is_first_log_entry THEN            
             g_is_first_log_entry := false;
@@ -128,7 +130,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                                               ,p_end_ts_in       => NULL
                                               ,p_comments_in     => p_comments_in
                                               ,p_clob_text_in    => p_clob_text_in
-                                              ,p_status_in       => g_status_running);
+                                              ,p_status_in       => g_status_running
+                                              ,p_action_name_in => p_action_name_in);
     
         private_ins_into_log_table(v_log_record);
     
@@ -170,12 +173,14 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     END private_close_level;
     
     --Logs a single record
-    PROCEDURE log_record(p_comments_in  IN tech_log_table.comments%TYPE
+    PROCEDURE log_record(p_action_name_in IN tech_log_table.action_name%TYPE
+                        ,p_comments_in  IN tech_log_table.comments%TYPE DEFAULT NULL
                         ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL
                         ,p_status_in    IN tech_log_table.status%TYPE
                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
     BEGIN
-        open_next_level(p_comments_in  => p_comments_in
+        open_next_level(p_action_name_in => p_action_name_in
+                        ,p_comments_in  => p_comments_in
                        ,p_clob_text_in => p_clob_text_in);
         private_close_level(p_status_in    => p_status_in
                    ,p_row_count_in => p_row_count_in);

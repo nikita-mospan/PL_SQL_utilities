@@ -6,16 +6,17 @@ create table log_instances (
     , constraint log_instances_pk primary key(start_log_id));
 
 create table log_table (
-    log_id  NUMBER(16),
+    action_name varchar2(64) not null,
+    log_id  NUMBER(16) not null,
     parent_log_id NUMBER(16),
     start_ts timestamp(6) not null,
     end_ts timestamp(6),
     sid NUMBER not null,
     username varchar2(30) not null,
-    status varchar2(1 char),
+    status varchar2(1) not null,
     row_count number(12),        
-    comments varchar2(4000 char),
-    exception_message varchar2(4000 char),
+    comments varchar2(4000),
+    exception_message varchar2(4000),
     clob_text CLOB,
     log_date date not null,
     constraint log_table_status_chck check (status in ('C'/*completed*/, 'R'/*running*/, 'F'/*failed*/))
@@ -28,6 +29,8 @@ interval(NUMTODSINTERVAL(7,'day'))
 create index log_table_log_id_idx on log_table(log_id) local;
     
 create index log_table_parent_id_idx on log_table(parent_log_id) local;
+
+create index log_table_action_name_idx on log_table(action_name) local;
         
 CREATE SEQUENCE SEQ_LOG_TABLE
     START WITH 1

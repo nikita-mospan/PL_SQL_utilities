@@ -22,11 +22,13 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     
     --Procedure creates next level of the logging hierarchy.
     --It creates new instance of logging hierarchy if it does not exist
-    PROCEDURE open_next_level(p_comments_in  IN tech_log_table.comments%TYPE
+    PROCEDURE open_next_level(p_action_name_in IN tech_log_table.action_name%TYPE
+                             ,p_comments_in  IN tech_log_table.comments%TYPE DEFAULT NULL
                              ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL);
     
     --Logs a single record
-    PROCEDURE log_record(p_comments_in  IN tech_log_table.comments%TYPE
+    PROCEDURE log_record(p_action_name_in IN tech_log_table.action_name%TYPE
+                        ,p_comments_in  IN tech_log_table.comments%TYPE DEFAULT NULL
                         ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL
                         ,p_status_in    IN tech_log_table.status%TYPE
                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
