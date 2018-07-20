@@ -136,7 +136,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     
     --Procedure updates the status, end_ts and optionally row_count (if some DML was performed) of the current log level in log_table
     --It also saves exception message if current level threw exception.
-    PROCEDURE close_level(p_status_in    IN tech_log_table.status%TYPE
+    PROCEDURE private_close_level(p_status_in    IN tech_log_table.status%TYPE
                          ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
         v_exception_message tech_log_table.exception_message%TYPE;
         v_new_parent_log_id tech_log_table.parent_log_id%TYPE := NULL;
@@ -167,7 +167,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     
         g_parent_log_id := v_new_parent_log_id;
     
-    END close_level;
+    END private_close_level;
     
     --Logs a single record
     PROCEDURE log_record(p_comments_in  IN tech_log_table.comments%TYPE
@@ -177,13 +177,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     BEGIN
         open_next_level(p_comments_in  => p_comments_in
                        ,p_clob_text_in => p_clob_text_in);
-        close_level(p_status_in    => p_status_in
+        private_close_level(p_status_in    => p_status_in
                    ,p_row_count_in => p_row_count_in);
-    END;
-    
-    FUNCTION get_log_name RETURN tech_log_instances.name%TYPE IS
-    BEGIN
-        RETURN g_log_name;
     END;
     
     --procedure initializes logging context in case you created a separate session (for ex. via dbms_scheduler) 
@@ -197,14 +192,14 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     --Close level successfully
     PROCEDURE close_level_success(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
     BEGIN
-        close_level(p_status_in    => pk_util_log.g_status_completed
+        private_close_level(p_status_in    => pk_util_log.g_status_completed
                    ,p_row_count_in => p_row_count_in);
     END;
     
     --Close level with failure
     PROCEDURE close_level_fail(p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
     BEGIN
-        close_level(p_status_in    => pk_util_log.g_status_failed
+        private_close_level(p_status_in    => pk_util_log.g_status_failed
                    ,p_row_count_in => p_row_count_in);
     END;
     

@@ -25,19 +25,11 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     PROCEDURE open_next_level(p_comments_in  IN tech_log_table.comments%TYPE
                              ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL);
     
-    --Procedure updates the status, end_ts and optionally row_count (if some DML was performed) of the current log level in log_table
-    --It also saves exception message if current level threw exception.
-    PROCEDURE close_level(p_status_in    IN tech_log_table.status%TYPE
-                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
-    
     --Logs a single record
     PROCEDURE log_record(p_comments_in  IN tech_log_table.comments%TYPE
                         ,p_clob_text_in IN tech_log_table.clob_text%TYPE DEFAULT NULL
                         ,p_status_in    IN tech_log_table.status%TYPE
                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL);
-    
-    --Procedure gets the name of the logging hierarchy instance
-    FUNCTION get_log_name RETURN tech_log_instances.name%TYPE;
     
     --Get current log_id for the session
     FUNCTION get_current_log_id RETURN tech_log_table.log_id%TYPE;

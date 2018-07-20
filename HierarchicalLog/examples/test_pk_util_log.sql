@@ -67,10 +67,10 @@ BEGIN
     pk_util_log.open_next_level(p_comments_in => v_sql);
     dbms_output.put_line(pk_util_log.get_start_log_id); 
     execute immediate v_sql into v_dummy_value;
-    pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed, p_row_count_in => sql%rowcount);
+    pk_util_log.close_level_success(p_row_count_in => sql%rowcount);
 EXCEPTION
     WHEN OTHERS THEN
-        pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+        pk_util_log.close_level_fail;
         RAISE;
 END;
 /
@@ -92,10 +92,10 @@ BEGIN
                 pk_util_log.resume_logging(p_parent_log_id => #log_id#);
                 pk_util_log.open_next_level(p_comments_in => ''Job record'');
                 dbms_lock.sleep(#i#);
-                pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
+                pk_util_log.close_level_success;
             exception
 	            when others then
-                    pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+                    pk_util_log.close_level_fail;
                     raise;
             end;';
         dbms_scheduler.create_job(job_name        => 'RESUME_LOGGING_JOB_' || to_char(i)
@@ -105,10 +105,10 @@ BEGIN
                                  ,enabled         => TRUE
                                  , auto_drop => TRUE);
     end loop;
-    pk_util_log.close_level(p_status_in => pk_util_log.g_status_completed);
+    pk_util_log.close_level_success;
 exception
 	when others then
-		pk_util_log.close_level(p_status_in => pk_util_log.g_status_failed);
+		pk_util_log.close_level_fail;
 		raise;
 END;
 /
