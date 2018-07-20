@@ -1,9 +1,13 @@
 create table log_instances (
     start_log_id number(16) not null
-    , name varchar2(32 char)
+    , log_instance_name varchar2(100) not null
     , start_ts timestamp(6) not null
+    , end_ts timestamp(6)
+    , status varchar2(1) not null
     , log_date date not null
     , constraint log_instances_pk primary key(start_log_id));
+
+create index log_instances_name_idx on log_instances(log_instance_name);
 
 create table log_table (
     action_name varchar2(64) not null,

@@ -11,7 +11,11 @@ CREATE OR REPLACE PACKAGE pk_util_log AUTHID DEFINER AS
     g_status_failed    CONSTANT VARCHAR2(1) := 'F';
     
     --Procedure clears session logging variables, so that the next logging attempt will be made into the new logging hierarchy
-    PROCEDURE start_logging(p_log_name_in IN tech_log_instances.name%type);
+    PROCEDURE start_logging(p_log_instance_name_in IN tech_log_instances.log_instance_name%type);
+    
+    procedure stop_log_success;
+    
+    procedure stop_log_fail;
     
     --procedure initializes logging context in case you created a separate session (for ex. via dbms_scheduler) 
     --and you want this session to write into the same logging hierarchy instance

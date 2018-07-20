@@ -8,7 +8,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
 	g_start_log_id tech_log_instances.start_log_id%type := NULL;
     g_current_log_id tech_log_table.log_id%type := NULL;
     g_parent_log_id tech_log_table.parent_log_id%type := NULL;
-    g_log_name tech_log_instances.name%type := NULL;
     g_is_first_log_entry boolean := true;
     
     --Insertion into/update of into log_table is made in autonomous transaction to preserve the changes even in case of exception
@@ -37,20 +36,23 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     END;
     
     PROCEDURE private_ins_into_log_instances(p_start_log_id_in IN tech_log_instances.start_log_id%TYPE
-                                            ,p_name_in      IN tech_log_instances.name%TYPE
-                                            ,p_start_ts_in     IN tech_log_instances.start_ts%TYPE) IS
+                                            ,p_log_instance_name_in      IN tech_log_instances.log_instance_name%TYPE
+                                            ,p_start_ts_in     IN tech_log_instances.start_ts%TYPE
+                                            ,p_status_in        IN tech_log_instances.status%TYPE) IS
         PRAGMA AUTONOMOUS_TRANSACTION;
     BEGIN
         INSERT INTO tech_log_instances
             (start_log_id
-            ,NAME
+            ,log_instance_name
             ,start_ts
-            ,log_date)
+            ,log_date
+            ,status)
         VALUES
             (p_start_log_id_in
-            ,p_name_in
+            ,p_log_instance_name_in
             ,p_start_ts_in
-            ,trunc(p_start_ts_in));
+            ,trunc(p_start_ts_in)
+            ,p_status_in);
         COMMIT;
     END;
     
@@ -96,17 +98,36 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     END;
     
     --Procedure clears session logging variables, so that the next logging attempt will be made into the new logging hierarchy
-    PROCEDURE start_logging(p_log_name_in IN tech_log_instances.name%type) IS
+    PROCEDURE start_logging(p_log_instance_name_in IN tech_log_instances.log_instance_name%type) IS
     BEGIN
         g_is_first_log_entry := true;
         g_start_log_id := tech_log_table_seq.nextval;
         g_current_log_id := g_start_log_id;
         g_parent_log_id := NULL;
-        g_log_name := p_log_name_in;
-        private_ins_into_log_instances(p_start_log_id_in => g_start_log_id
-                                      ,p_name_in         => g_log_name
-                                      ,p_start_ts_in     => systimestamp);
+        private_ins_into_log_instances(p_start_log_id_in            => g_start_log_id
+                                      ,p_log_instance_name_in       => p_log_instance_name_in
+                                      ,p_start_ts_in                => systimestamp
+                                      ,p_status_in                  => g_status_running);
     END;
+    
+    procedure private_stop_log(p_status_in IN tech_log_instances.status%type) is
+        PRAGMA AUTONOMOUS_TRANSACTION; 
+    begin
+        update tech_log_instances t set t.status = p_status_in, t.end_ts = systimestamp
+        where t.start_log_id = g_start_log_id;
+        
+        commit;
+    end; 
+    
+    procedure stop_log_success is
+    begin
+        private_stop_log(g_status_completed);
+    end; 
+    
+    procedure stop_log_fail is
+    begin
+        private_stop_log(g_status_failed);
+    end; 
     
     --Procedure creates next level of the logging hierarchy.
     --It creates new instance of logging hierarchy if it does not exist

@@ -1,6 +1,6 @@
 --main hierarchical query
 SELECT
-    LPAD (' ', 2* (LEVEL- 1)) || l.action_name,
+    LPAD (' ', 2* (LEVEL- 1)) || l.action_name as action_name,
     l.status,
     l.start_ts,
     l.end_ts,
@@ -57,6 +57,11 @@ BEGIN
     pk_util_log.start_logging('Test log');
     a('dummy_a');
     dbms_output.put_line(pk_util_log.get_start_log_id);
+    pk_util_log.stop_log_success;
+exception
+	when others then
+		pk_util_log.stop_log_fail;
+		raise;
 END;
 /
 
@@ -71,9 +76,11 @@ BEGIN
     dbms_output.put_line(pk_util_log.get_start_log_id); 
     execute immediate v_sql into v_dummy_value;
     pk_util_log.close_level_success(p_row_count_in => sql%rowcount);
+    pk_util_log.stop_log_success;
 EXCEPTION
     WHEN OTHERS THEN
         pk_util_log.close_level_fail;
+        pk_util_log.stop_log_fail;
         RAISE;
 END;
 /
@@ -109,9 +116,11 @@ BEGIN
                                  , auto_drop => TRUE);
     end loop;
     pk_util_log.close_level_success;
+    pk_util_log.stop_log_success;
 exception
 	when others then
 		pk_util_log.close_level_fail;
+        pk_util_log.stop_log_fail;
 		raise;
 END;
 /
