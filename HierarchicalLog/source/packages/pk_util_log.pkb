@@ -239,6 +239,52 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         
         COMMIT;
     END;
+
+    procedure log_and_execute_dml (p_action_name_in IN varchar2
+                                    , p_sql_in IN clob
+                                    , p_rowcount_out OUT number
+                                    , p_commit_after_dml_in IN boolean default false 
+                                    , p_raise_if_dml_failed_in IN boolean default true) is
+    begin
+        open_next_level(p_action_name_in);
+                
+        add_clob_text(p_clob_text_in => p_sql_in);
+        
+        execute immediate p_sql_in;
+        p_rowcount_out := sql%rowcount;
+        
+        close_level_success(p_row_count_in => sql%rowcount);
+     
+        if p_commit_after_dml_in then
+            commit;
+        end if;
+        
+    exception
+    	when others then
+    		close_level_fail;
+            if p_raise_if_dml_failed_in then
+    		    raise;
+            end if;
+    end log_and_execute_dml; 
+    
+    procedure log_and_execute_ddl (p_action_name_in IN varchar2
+                                    , p_sql_in IN clob
+                                    , p_raise_if_ddl_failed_in IN boolean default true) is
+    begin
+        open_next_level(p_action_name_in);
+        
+        add_clob_text(p_clob_text_in => p_sql_in);
+        
+        execute immediate p_sql_in;
+        
+        close_level_success;
+     exception
+    	when others then
+    		close_level_fail;
+            if p_raise_if_ddl_failed_in then
+    		    raise;
+            end if;
+    end log_and_execute_ddl; 
       
 END pk_util_log;
 /
