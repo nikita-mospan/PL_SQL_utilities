@@ -9,7 +9,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         PRAGMA AUTONOMOUS_TRANSACTION; 
         v_task_name tech_parallel_tasks.task_name%type;
     begin
-        pk_util_log.open_next_level(p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.CREATE_TASK' || g_new_line ||
+        pk_util_log.open_next_level(p_action_name_in => 'create_task'
+                                , p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.CREATE_TASK' || g_new_line ||
                                                     'TASK_PREFIX: ' || p_task_prefix_in || g_new_line ||
                                                     'See comments in clob_text'
                                 , p_clob_text_in => p_comments_in);
@@ -19,7 +20,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         insert into tech_parallel_tasks (task_name, comments, status, parallel_level, timeout_seconds, task_prefix)
             values(v_task_name, p_comments_in, g_status_new, p_parallel_level_in, p_timeout_seconds_in, p_task_prefix_in);
         
-        pk_util_log.log_record(p_comments_in => 'TASK_NAME: ' || v_task_name
+        pk_util_log.log_record(p_action_name_in => 'TASK_NAME: ' || v_task_name
                             , p_status_in => pk_util_log.g_status_completed);
         
         dbms_parallel_execute.create_task(task_name => v_task_name,
@@ -43,7 +44,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         PRAGMA AUTONOMOUS_TRANSACTION; 
         v_item_id tech_parallel_task_items.item_id%type;
     begin
-        pk_util_log.open_next_level(p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.ADD_ITEM_TO_TASK ' || g_new_line ||
+        pk_util_log.open_next_level(p_action_name_in => 'ADD_ITEM_TO_TASK' 
+                                , p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.ADD_ITEM_TO_TASK ' || g_new_line ||
                                                     'TASK_NAME: ' || p_task_name_in || g_new_line ||
                                                     'See PL/SQL block in clob_text'
                                 , p_clob_text_in => p_plsql_block_in);
@@ -86,7 +88,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         exception
         	when others then
                 rollback;
-        		pk_util_log.log_record(p_comments_in => 'execute_task-->set_chunk_for_items failed'
+        		pk_util_log.log_record(p_action_name_in => 'execute_task-->set_chunk_for_items failed'
                                     , p_status_in => g_status_failed);
         		raise;
         end set_chunk_for_items;
@@ -112,7 +114,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         exception
         	when others then
                 rollback;
-        		pk_util_log.log_record(p_comments_in => 'execute_task-->log_execution_status failed'
+        		pk_util_log.log_record(p_action_name_in => 'execute_task-->log_execution_status failed'
                                     , p_status_in => g_status_failed);
         		raise;
         end log_execution_status;
@@ -132,14 +134,16 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         end;
     ---------------------------------------
     begin
-        pk_util_log.open_next_level(p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.EXECUTE_TASK' || g_new_line ||
+        pk_util_log.open_next_level(p_action_name_in => 'execute_task',
+                                p_comments_in => 'PK_UTIL_PARALLEL_EXECUTE.EXECUTE_TASK' || g_new_line ||
                                                     'TASK_NAME: ' || p_task_name_in || g_new_line);
         
         select t.parallel_level, t.timeout_seconds, t.task_prefix 
             into v_parallel_level, v_timeout_seconds, v_task_prefix
         from tech_parallel_tasks t where t.task_name = p_task_name_in;
         
-        pk_util_log.log_record(p_comments_in => 'parallel_level: ' || to_char(v_parallel_level) || g_new_line ||
+        pk_util_log.log_record(p_action_name_in => 'Parameters: '
+                            , p_comments_in => 'parallel_level: ' || to_char(v_parallel_level) || g_new_line ||
                                                 'timeout_seconds: ' || to_char(v_timeout_seconds) || g_new_line ||
                                                 'task_prefix ' || v_task_prefix
                             , p_status_in => pk_util_log.g_status_completed);
@@ -148,7 +152,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                             , '#task_name#'
                             , p_task_name_in); 
         
-        pk_util_log.log_record(p_comments_in => 'chunk SQL'
+        pk_util_log.log_record(p_action_name_in => 'chunk SQL'
                             , p_clob_text_in => v_chunk_sql
                             , p_status_in => pk_util_log.g_status_completed);
         
@@ -180,7 +184,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                             from parallel_task_items i where i.item_id between :start_id and :end_id;
                             
                             pk_util_log.resume_logging(p_parent_log_id => #log_id#);
-                            pk_util_log.open_next_level(p_comments_in => 'Executing item_id: ' || to_char(v_item_id));
+                            pk_util_log.open_next_level(p_action_name_in => 'Executing item_id: ' || to_char(v_item_id));
                             v_cur_log_id := pk_util_log.get_current_log_id;
                                                         
                             set_item_log_id;
@@ -210,7 +214,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
         v_plsql_task_run_str := replace(v_plsql_task_run_str, '#v_plsql_task_str#', 'q''~' || v_plsql_task_str || '~''');
         v_plsql_task_run_str := replace(v_plsql_task_run_str, '#v_parallel_level#', to_char(v_parallel_level));
         
-        pk_util_log.log_record(p_comments_in => 'plsql_task'
+        pk_util_log.log_record(p_action_name_in => 'plsql_task'
                             , p_clob_text_in => v_plsql_task_run_str
                             , p_status_in => pk_util_log.g_status_completed);
         
@@ -252,14 +256,16 @@ CREATE OR REPLACE PACKAGE BODY pk_util_parallel_execute AS
                                                     , job_action => v_stop_item_job_action
                                                     , enabled => true);   
                             
-                            pk_util_log.log_record(p_comments_in => 'Job ' || v_job_to_stop_timeout_items || ' started to stop job ' ||
+                            pk_util_log.log_record(p_action_name_in => 'Stopping job'
+                                                , p_comments_in => 'Job ' || v_job_to_stop_timeout_items || ' started to stop job ' ||
                                                                                i.job_name || ' for item_id: ' || to_char(i.item_id)
                                                 , p_status_in => pk_util_log.g_status_completed);
                             
                            
                         exception
                         	when others then
-                        		pk_util_log.log_record(p_comments_in => 'Job ' || v_job_to_stop_timeout_items || ' failed(!!!) to stop job ' ||
+                        		pk_util_log.log_record(p_action_name_in => 'Stopping job'
+                                                    , p_comments_in => 'Job ' || v_job_to_stop_timeout_items || ' failed(!!!) to stop job ' ||
                                                                                i.job_name || ' for item_id: ' || to_char(i.item_id)
                                                         , p_clob_text_in => 'v_stop_item_job_action: ' || g_new_line ||
                                                                             v_stop_item_job_action
