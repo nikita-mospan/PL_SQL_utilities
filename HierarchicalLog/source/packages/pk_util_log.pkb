@@ -35,6 +35,41 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
         COMMIT;
     END;
     
+    --Procedure updates the status, end_ts and optionally row_count (if some DML was performed) of the current log level in log_table
+    --It also saves exception message if current level threw exception.
+    PROCEDURE private_close_level(p_status_in    IN tech_log_table.status%TYPE
+                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
+        v_exception_message tech_log_table.exception_message%TYPE;
+        v_new_parent_log_id tech_log_table.parent_log_id%TYPE := NULL;
+    BEGIN        
+        dbms_application_info.set_action(action_name => NULL);
+        dbms_application_info.set_client_info(client_info => NULL);
+    
+        IF p_status_in = g_status_failed
+        THEN
+            v_exception_message := dbms_utility.format_error_backtrace || chr(13) || chr(10) ||
+                                    dbms_utility.format_error_stack || chr(13) || chr(10) ||
+                                    dbms_utility.format_call_stack;
+        END IF;
+    
+        private_upd_log_table(p_status_in            => p_status_in
+                             ,p_exception_message_in => v_exception_message
+                             ,p_log_id_in            => g_current_log_id
+                             ,p_row_count_in         => p_row_count_in);
+    
+        g_current_log_id := nvl(g_parent_log_id, g_start_log_id);
+        
+        IF g_parent_log_id IS NOT NULL THEN
+            SELECT t.parent_log_id
+            INTO   v_new_parent_log_id
+            FROM   tech_log_table t
+            WHERE  t.log_id = g_parent_log_id;
+        END IF;
+    
+        g_parent_log_id := v_new_parent_log_id;
+    
+    END private_close_level;
+    
     PROCEDURE private_ins_into_log_instances(p_start_log_id_in IN tech_log_instances.start_log_id%TYPE
                                             ,p_log_instance_name_in      IN tech_log_instances.log_instance_name%TYPE
                                             ,p_start_ts_in     IN tech_log_instances.start_ts%TYPE
@@ -108,6 +143,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
                                       ,p_log_instance_name_in       => p_log_instance_name_in
                                       ,p_start_ts_in                => systimestamp
                                       ,p_status_in                  => g_status_running);
+        open_next_level(p_action_name_in => p_log_instance_name_in);
     END;
     
     procedure private_stop_log(p_status_in IN tech_log_instances.status%type) is
@@ -115,6 +151,8 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     begin
         update tech_log_instances t set t.status = p_status_in, t.end_ts = systimestamp
         where t.start_log_id = g_start_log_id;
+        
+        private_close_level(p_status_in);
         
         commit;
     end; 
@@ -156,42 +194,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_log AS
     
         private_ins_into_log_table(v_log_record);
     
-    END open_next_level;
-    
-    --Procedure updates the status, end_ts and optionally row_count (if some DML was performed) of the current log level in log_table
-    --It also saves exception message if current level threw exception.
-    PROCEDURE private_close_level(p_status_in    IN tech_log_table.status%TYPE
-                         ,p_row_count_in IN tech_log_table.row_count%TYPE DEFAULT NULL) IS
-        v_exception_message tech_log_table.exception_message%TYPE;
-        v_new_parent_log_id tech_log_table.parent_log_id%TYPE := NULL;
-    BEGIN        
-        dbms_application_info.set_action(action_name => NULL);
-        dbms_application_info.set_client_info(client_info => NULL);
-    
-        IF p_status_in = g_status_failed
-        THEN
-            v_exception_message := dbms_utility.format_error_backtrace || chr(13) || chr(10) ||
-                                    dbms_utility.format_error_stack || chr(13) || chr(10) ||
-                                    dbms_utility.format_call_stack;
-        END IF;
-    
-        private_upd_log_table(p_status_in            => p_status_in
-                             ,p_exception_message_in => v_exception_message
-                             ,p_log_id_in            => g_current_log_id
-                             ,p_row_count_in         => p_row_count_in);
-    
-        g_current_log_id := nvl(g_parent_log_id, g_start_log_id);
-        
-        IF g_parent_log_id IS NOT NULL THEN
-            SELECT t.parent_log_id
-            INTO   v_new_parent_log_id
-            FROM   tech_log_table t
-            WHERE  t.log_id = g_parent_log_id;
-        END IF;
-    
-        g_parent_log_id := v_new_parent_log_id;
-    
-    END private_close_level;
+    END open_next_level;   
     
     --Logs a single record
     PROCEDURE log_record(p_action_name_in IN tech_log_table.action_name%TYPE
