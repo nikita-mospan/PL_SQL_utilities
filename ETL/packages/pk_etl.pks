@@ -12,8 +12,9 @@ CREATE OR REPLACE PACKAGE pk_etl AUTHID CURRENT_USER AS
         return varchar2
         deterministic;
         
-    procedure load_entity(p_entity_in IN varchar2,
-                        p_x_vstart_in IN timestamp);
+    procedure load_master_table(p_master_table_in IN master_tables.master_table%type,
+                                p_mapping_name_in IN mappings2master.mapping_name%type,
+                                p_x_vstart_in IN timestamp);
    
 END pk_etl;
 /
