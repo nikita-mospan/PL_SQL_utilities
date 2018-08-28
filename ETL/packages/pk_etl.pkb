@@ -86,9 +86,9 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_HASH_KEY]', priv_get_master_table_fields(p_table_m_in, g_business_hash_key_cons)); 
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[DELTA_HASH_KEY]', priv_get_master_table_fields(p_table_m_in, g_delta_hash_key_cons));
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[TABLE_M]', p_table_m_in);   
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[END_PARTITION]', c_x_vend_partition);
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[END_PARTITION]', pk_constants.c_x_vend_partition);
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[X_VSTART]', pk_etl.prepare_timestamp_replace(p_x_vstart));  
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[X_VEND]', pk_etl.prepare_timestamp_replace(c_x_vend));
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[X_VEND]', pk_etl.prepare_timestamp_replace(pk_constants.c_x_vend));
         pk_util_log.log_and_execute_dml(p_action_name_in => 'Insert into ' || p_table_a_in
                                         , p_sql_in => v_sql_ins_into_a
                                         , p_commit_after_dml_in => true
@@ -119,7 +119,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[BUSINESS_FIELDS_M_ALIAS]', 
                                                             priv_get_master_table_fields(p_table_m_in, g_business_fields_cons, 'm.'));
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[X_VSTART]', pk_etl.prepare_timestamp_replace(p_x_vstart_in));
-        v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[VEND_PARTITION]', c_x_vend_partition);
+        v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[VEND_PARTITION]', pk_constants.c_x_vend_partition);
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[TABLE_A]', p_table_a_in);
         
         pk_util_log.log_and_execute_dml(p_action_name_in => 'Move delta to previous partition'
@@ -178,7 +178,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         private_move_dlta_to_partition (v_prev_partition_name, p_x_vstart_in, v_table_m, v_table_a);
         
         pk_util_log.log_and_execute_ddl(p_action_name_in => 'Load latest data via exchange partition'
-                                    , p_sql_in => 'alter table ' || v_table_m || ' exchange partition ' || c_x_vend_partition || ' with table ' 
+                                    , p_sql_in => 'alter table ' || v_table_m || ' exchange partition ' || pk_constants.c_x_vend_partition || ' with table ' 
                                                     || v_table_a || ' including indexes');
         
         pk_util_log.stop_log_success;
