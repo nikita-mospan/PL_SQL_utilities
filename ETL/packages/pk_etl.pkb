@@ -154,7 +154,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         v_table_m varchar2(30);
         v_prev_partition_name varchar2(30);
     begin
-        pk_util_log.start_logging(p_log_instance_name_in => 'Load Master Table: ' || p_master_table_in);
+        pk_util_log.open_next_level(p_action_name_in => 'Load Master Table: ' || p_master_table_in);
         dbms_output.put_line(pk_util_log.get_start_log_id); 
         
         select t.auxillary_table, t.master_table into v_table_a, v_table_m
@@ -181,10 +181,10 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                                     , p_sql_in => 'alter table ' || v_table_m || ' exchange partition ' || pk_constants.c_x_vend_partition || ' with table ' 
                                                     || v_table_a || ' including indexes');
         
-        pk_util_log.stop_log_success;
+        pk_util_log.close_level_success;
     exception
     	when others then
-    		pk_util_log.stop_log_fail;
+    		pk_util_log.close_level_fail;
     		raise;
     end load_master_table; 
           

@@ -18,6 +18,7 @@ create table master_tables_attributes (
     attribute_type varchar2(100) not null,
     is_part_of_business_key varchar2(1) check (is_part_of_business_key in ('Y', 'N')),
     is_part_of_business_delta varchar2(1) check (is_part_of_business_delta in ('Y', 'N')),
+    is_nullable varchar2(1) check (is_nullable in ('Y', 'N')),
     constraint c_master_tables_attributes_pk primary key (master_table, attribute_name),
     constraint c_master_tables_attributes_fk foreign key (master_table) references master_tables
 );
@@ -37,13 +38,25 @@ create table mappings2master (
     
 
 insert into master_tables(master_table)
-    values ('COMPANY_M');
+select 'COMPANY_M' as master_table from dual
+union all
+select 'VALID_RULES_CONFIG_M' from dual
+union all
+select 'COMPANY_ERR_M' from dual
+;
 
 insert into master_tables_attributes (
-        master_table,   attribute_name,     attribute_type,     is_part_of_business_key, is_part_of_business_delta)
-select 'COMPANY_M',     'COMPANY_ID',       'NUMBER',           'Y',                     'N'                        from dual union all
-select 'COMPANY_M',     'NAME',             'VARCHAR2(100)',    'Y',                     'N'                        from dual union all
-select 'COMPANY_M',     'SEGMENT',          'VARCHAR2(50)',     'N',                     'Y'                        from dual
+        master_table,   attribute_name,     attribute_type,     is_part_of_business_key, is_part_of_business_delta, is_nullable)
+select 'COMPANY_M',     'COMPANY_ID',       'NUMBER',           'Y',                     'Y',                       'N'             from dual union all
+select 'COMPANY_M',     'NAME',             'VARCHAR2(100)',    'Y',                     'Y',                       'N'             from dual union all
+select 'COMPANY_M',     'SEGMENT',          'VARCHAR2(50)',     'N',                     'Y',                       'N'             from dual union all
+select 'VALID_RULES_CONFIG_M',     'RULE_CODE', 'VARCHAR2(30)', 'Y',                     'Y',                       'N'             from dual union all
+select 'VALID_RULES_CONFIG_M',     'VALIDATED_TABLE', 'VARCHAR2(30)', 'N',               'Y',                       'N'             from dual union all
+select 'VALID_RULES_CONFIG_M',     'RULE_DESCRIPTION', 'VARCHAR2(4000)', 'N',            'Y',                       'N'             from dual union all
+select 'VALID_RULES_CONFIG_M',     'VALIDATION_CHECK', 'VARCHAR2(4000)', 'N',            'Y',                       'N'             from dual union all
+select 'COMPANY_ERR_M', 'RULE_CODE', 'VARCHAR2(30)', 'Y', 'Y', 'N' from dual union all
+select 'COMPANY_ERR_M', 'SOURCE_X_BUSINESS_HKEY', 'VARCHAR2(32)', 'Y', 'Y', 'N' from dual union all
+select 'COMPANY_ERR_M', 'SOURCE_X_VSTART', 'TIMESTAMP', 'Y', 'Y', 'N' from dual 
 ;
 
 insert into master_tech_attributes (
@@ -57,7 +70,13 @@ select  'X_VEND',               'TIMESTAMP'         from dual
 
 insert into mappings2master (
         mapping_name,                   master_table,   mapping_sql)
-select  'TRIVIAL_LOAD_TO_COMPANY_M',    'COMPANY_M',    'select company_id,name,segment from company_s' from dual; 
+select  'POPULATE_COMPANY_M',    'COMPANY_M',    'select company_id,name,segment from company_s' from dual union all
+select  'POPULATE_VALID_RULES_CONFIG_M',    'VALID_RULES_CONFIG_M',    
+                                'select rule_code,validated_table,rule_description, validation_check from valid_rules_config_s' from dual union all
+select  'POPULATE_COMPANY_ERR_M',    'COMPANY_ERR_M',    
+                                'select rule_code,SOURCE_X_BUSINESS_HKEY,SOURCE_X_VSTART from COMPANY_ERR_S' from dual 
+
+; 
 
 commit;
 
