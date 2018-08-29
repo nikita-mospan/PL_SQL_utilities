@@ -56,7 +56,7 @@ select 'VALID_RULES_CONFIG_M',     'RULE_DESCRIPTION', 'VARCHAR2(4000)', 'N',   
 select 'VALID_RULES_CONFIG_M',     'VALIDATION_CHECK', 'VARCHAR2(4000)', 'N',            'Y',                       'N'             from dual union all
 select 'COMPANY_ERR_M', 'RULE_CODE', 'VARCHAR2(30)', 'Y', 'Y', 'N' from dual union all
 select 'COMPANY_ERR_M', 'SOURCE_X_BUSINESS_HKEY', 'VARCHAR2(32)', 'Y', 'Y', 'N' from dual union all
-select 'COMPANY_ERR_M', 'SOURCE_X_VSTART', 'TIMESTAMP', 'Y', 'Y', 'N' from dual 
+select 'COMPANY_ERR_M', 'SOURCE_X_VSTART', 'TIMESTAMP(6)', 'Y', 'Y', 'N' from dual 
 ;
 
 insert into master_tech_attributes (
