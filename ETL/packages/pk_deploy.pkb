@@ -80,9 +80,12 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
         v_master_exists pls_integer := 0;
         v_auxil_table master_tables.auxillary_table%type;
         e_modified_col_part_of_bus_key exception;
+        v_lockname varchar2(128) := 'deploy_' || p_master_table_in;
         pragma exception_init(e_modified_col_part_of_bus_key, -20001);
     begin
         pk_util_log.open_next_level(p_action_name_in => 'Deploying ' || p_master_table_in);
+        
+        pk_util_lock.acquire(p_lock_name_in => v_lockname);
         
         select t.auxillary_table into v_auxil_table from master_tables t where t.master_table = p_master_table_in;
         
@@ -156,12 +159,27 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
             priv_create_auxil_table(p_table_a_in => v_auxil_table, p_master_table_in => p_master_table_in);                             
         end if;
         
+        pk_util_lock.release(v_lockname);
+        
         pk_util_log.close_level_success;
     exception
     	when others then
     		pk_util_log.close_level_fail;
     		raise;
     end deploy_master_table;
+    
+    procedure deploy_all_master_tables is
+    begin
+        pk_util_log.start_logging(p_log_instance_name_in => 'deploy_all_master_tables');
+        for i in (select * from master_tables) loop
+            deploy_master_table(p_master_table_in => i.master_table);
+        end loop; 
+        pk_util_log.stop_log_success;
+    exception
+    	when others then
+    		pk_util_log.stop_log_fail;
+    		raise;
+    end ; 
        
 END pk_deploy;
 /
