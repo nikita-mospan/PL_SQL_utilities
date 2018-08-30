@@ -79,6 +79,8 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
     procedure deploy_master_table (p_master_table_in varchar2) is
         v_master_exists pls_integer := 0;
         v_auxil_table master_tables.auxillary_table%type;
+        e_modified_col_part_of_bus_key exception;
+        pragma exception_init(e_modified_col_part_of_bus_key, -20001);
     begin
         pk_util_log.open_next_level(p_action_name_in => 'Deploying ' || p_master_table_in);
         
@@ -90,7 +92,65 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
         where t.TABLE_NAME = p_master_table_in;
         
         if v_master_exists > 0 then
-            null;
+            for rec in (with oracle_dict as (
+                        select
+                            t.COLUMN_NAME
+                            , t.DATA_TYPE || 
+                                case t.DATA_TYPE
+                                    when 'NUMBER' then replace('(' || t.DATA_PRECISION || ',' || t.DATA_SCALE || ')', '(,)')
+                                    when 'VARCHAR2' then '(' || t.DATA_LENGTH || ')'
+                                end ||
+                                case when t.NULLABLE = 'N' then ' NOT NULL' end as column_type,
+                            t.NULLABLE
+                        from user_tab_columns t
+                        where t.TABLE_NAME = p_master_table_in
+                            and t.COLUMN_NAME not like 'X@_%' escape '@'
+                    ),
+                    our_model as (
+                        select *
+                        from master_tables_attributes mta
+                        where mta.master_table = p_master_table_in 
+                    )
+                    select oracle_dict.column_name as oracle_dict_column_name
+                        , our_model.attribute_name as our_model_attribute_name
+                        , oracle_dict.column_type as oracle_dict_column_type
+                        , case when oracle_dict.nullable = 'N' then replace(our_model.attribute_type, 'NOT NULL') 
+                                else our_model.attribute_type end as our_model_attribute_type
+                    from oracle_dict full join our_model on oracle_dict.COLUMN_NAME = our_model.attribute_name
+                    where oracle_dict.COLUMN_NAME is null
+                        or our_model.attribute_name is null
+                        or oracle_dict.column_type <> our_model.attribute_type) loop
+               
+                if (rec.our_model_attribute_name is null) then
+                    pk_util_log.log_and_execute_ddl(p_action_name_in => 'Drop column ' || rec.oracle_dict_column_name || ' in ' || p_master_table_in , 
+                                            p_sql_in => 'alter table ' || p_master_table_in || ' drop column ' || rec.oracle_dict_column_name );
+                    pk_util_log.log_and_execute_ddl(p_action_name_in => 'Drop column ' || rec.oracle_dict_column_name || ' in ' || v_auxil_table,
+                                                p_sql_in => 'alter table ' || v_auxil_table || ' drop column ' || rec.oracle_dict_column_name );
+                end if;
+                
+                if (rec.oracle_dict_column_name is null) then
+                    pk_util_log.log_and_execute_ddl(p_action_name_in => 'Add column ' || rec.our_model_attribute_name 
+                                                                            || ' in table ' || p_master_table_in,
+                                                p_sql_in => 'alter table ' || p_master_table_in || ' add ' || rec.our_model_attribute_name 
+                                                || ' ' || rec.our_model_attribute_type );
+                    pk_util_log.log_and_execute_ddl(p_action_name_in => 'Add column ' || rec.our_model_attribute_name 
+                                                                            || ' in table ' || v_auxil_table
+                                                , p_sql_in => 'alter table ' || v_auxil_table || ' add ' || rec.our_model_attribute_name 
+                                                    || ' ' || rec.our_model_attribute_type );
+                end if;
+                
+                if (rec.our_model_attribute_name is not null and rec.oracle_dict_column_name is not null) then
+                    pk_util_log.log_and_execute_ddl(p_action_name_in => 'Modify column ' || rec.our_model_attribute_name 
+                                                                            || ' in table ' || p_master_table_in
+                                                    , p_sql_in => 'alter table ' || p_master_table_in || ' modify ' || rec.our_model_attribute_name 
+                                                            || ' ' || rec.our_model_attribute_type );
+                    pk_util_log.log_and_execute_ddl(p_action_name_in => 'Modify column ' || rec.our_model_attribute_name 
+                                                                            || ' in table ' || v_auxil_table
+                                                    , p_sql_in => 'alter table ' || v_auxil_table || ' modify ' || rec.our_model_attribute_name 
+                                                            || ' ' || rec.our_model_attribute_type );
+                end if;
+                
+            end loop;
         else
             priv_create_master_table(p_master_table_in);   
             priv_create_auxil_table(p_table_a_in => v_auxil_table, p_master_table_in => p_master_table_in);                             
