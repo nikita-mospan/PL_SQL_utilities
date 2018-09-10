@@ -26,7 +26,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                 order by t.attribute_name;
             when g_business_hash_key_cons then
                 select 'pk_etl.make_md5_hash(' || 
-                        listagg(p_alias_in || t.attribute_name, q'{ || '|' || }' ) within group (order by t.attribute_name) || ')' into v_result                       
+                        listagg(p_alias_in || t.attribute_name, q'{ || '|' || }' ) within group (order by t.business_key_order) || ')' into v_result                       
                 from master_tables_attributes t
                 where t.master_table = p_table_m_in
                     and t.is_part_of_business_key = 'Y';
@@ -41,7 +41,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                 from master_tables_attributes t
                 where t.master_table = p_table_m_in
                     and t.is_part_of_business_key = 'Y'
-                order by t.attribute_name;
+                order by t.business_key_order;
         end case;
         
         if v_string_list is not null then
