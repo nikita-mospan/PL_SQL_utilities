@@ -9,6 +9,7 @@ drop table master_tech_attributes;
 create table master_tables (
     master_table varchar2(30),
     auxillary_table as (substr(master_table, 1, length(master_table) - 1) || 'A'),
+    staging_table as (substr(master_table, 1, length(master_table) - 1) || 'S'),
     constraint c_master_table_pk primary key(master_table)
 );
 

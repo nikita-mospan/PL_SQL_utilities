@@ -75,10 +75,28 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
         pk_util_log.log_and_execute_ddl(p_action_name_in => 'Create ' || p_table_a_in, p_sql_in => v_crt_table_a_sql);
         
     end priv_create_auxil_table; 
+    
+    procedure priv_create_stage_table(p_table_s_in varchar2, p_master_table_in varchar2) is
+        v_crt_table_s_sql varchar2(32767);
+    begin
+        v_crt_table_s_sql := 'create table $STAGE_TABLE ( 
+                            $BUS_ATTRIBUTES ,
+                            constraint C_$STAGE_TABLE_PK primary key ($BUS_KEY)
+                            )';
+        
+        v_crt_table_s_sql := replace(v_crt_table_s_sql, '$STAGE_TABLE', p_table_s_in);
+        v_crt_table_s_sql := replace(v_crt_table_s_sql, '$BUS_ATTRIBUTES', priv_get_bus_col_definitions(p_master_table_in));
+        v_crt_table_s_sql := replace(v_crt_table_s_sql, '$BUS_KEY', 
+                                            pk_etl.get_master_table_fields(p_table_m_in => p_master_table_in
+                                                                            , p_type_in => pk_etl.g_business_key_cons));
+        pk_util_log.log_and_execute_ddl(p_action_name_in => 'Create ' || p_table_s_in, p_sql_in => v_crt_table_s_sql);
+        
+    end priv_create_stage_table; 
 
     procedure deploy_master_table (p_master_table_in varchar2) is
         v_master_exists pls_integer := 0;
         v_auxil_table master_tables.auxillary_table%type;
+        v_stage_table master_tables.staging_table%type;
         e_modified_col_part_of_bus_key exception;
         v_lockname varchar2(128) := 'deploy_' || p_master_table_in;
         pragma exception_init(e_modified_col_part_of_bus_key, -20001);
@@ -87,7 +105,8 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
         
         pk_util_lock.acquire(p_lock_name_in => v_lockname);
         
-        select t.auxillary_table into v_auxil_table from master_tables t where t.master_table = p_master_table_in;
+        select t.auxillary_table, t.staging_table into v_auxil_table, v_stage_table 
+        from master_tables t where t.master_table = p_master_table_in;
         
         --Check if table exists
         select count(*) into v_master_exists
@@ -156,7 +175,8 @@ CREATE OR REPLACE PACKAGE BODY pk_deploy AS
             end loop;
         else
             priv_create_master_table(p_master_table_in);   
-            priv_create_auxil_table(p_table_a_in => v_auxil_table, p_master_table_in => p_master_table_in);                             
+            priv_create_auxil_table(p_table_a_in => v_auxil_table, p_master_table_in => p_master_table_in);
+            priv_create_stage_table(p_table_s_in => v_stage_table, p_master_table_in => p_master_table_in);                             
         end if;
         
         pk_util_lock.release(v_lockname);

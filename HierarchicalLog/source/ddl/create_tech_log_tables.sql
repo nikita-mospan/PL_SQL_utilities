@@ -48,6 +48,6 @@ create or replace public synonym tech_log_table for log_table;
 create or replace public synonym tech_log_table_seq for SEQ_LOG_TABLE;
 create or replace public synonym tech_log_instances for log_instances;
 
-grant select on tech_log_table to public;
+grant select on log_table to public;
 grant select on log_instances to public;
 grant select on  SEQ_LOG_TABLE to public; 

@@ -1,11 +1,6 @@
-CREATE OR REPLACE PACKAGE BODY pk_etl AS   
-    
-    g_business_fields_cons constant varchar2(100) := 'BUSINESS_FIELDS';
-    g_tech_fields_cons constant varchar2(100) := 'TECH_FIELDS';
-    g_business_hash_key_cons constant varchar2(100) := 'BUSINESS_HASH_KEY';
-    g_delta_hash_key_cons constant varchar2(100) := 'DELTA_HASH_KEY';
+CREATE OR REPLACE PACKAGE BODY pk_etl AS    
 
-    function priv_get_master_table_fields (p_table_m_in IN varchar2
+    function get_master_table_fields (p_table_m_in IN varchar2
                                 , p_type_in in varchar2
                                 , p_alias_in in varchar2 default null) return varchar2 result_cache is
         type t_string_ntt is table of varchar2(32767);
@@ -13,6 +8,12 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         v_result varchar2(32767);
         v_delimiter varchar2(1);
     begin
+        
+        pk_util_log.open_next_level(p_action_name_in => 'get_master_table_fields'
+                                , p_comments_in => 'p_table_m_in: ' || p_table_m_in || pk_constants.eol ||
+                                                'p_type_in: ' || p_type_in || pk_constants.eol ||
+                                                'p_alias_in: ' || p_alias_in);                                                 
+    
         case p_type_in
             when g_business_fields_cons then
                 select p_alias_in || t.attribute_name bulk collect into v_string_list
@@ -35,6 +36,12 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                 from master_tables_attributes t
                 where t.master_table = p_table_m_in
                     and t.is_part_of_business_delta = 'Y';
+            when g_business_key_cons then
+                select p_alias_in || t.attribute_name bulk collect into v_string_list
+                from master_tables_attributes t
+                where t.master_table = p_table_m_in
+                    and t.is_part_of_business_key = 'Y'
+                order by t.attribute_name;
         end case;
         
         if v_string_list is not null then
@@ -44,8 +51,16 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
             end loop;
         end if;
         
+        pk_util_log.add_clob_text(v_result);
+        
+        pk_util_log.close_level_success;
+        
         return v_result;
-    end priv_get_master_table_fields; 
+    exception
+    	when others then
+    		pk_util_log.close_level_fail;
+    		raise;
+    end get_master_table_fields; 
 
     procedure private_populate_table_a(p_x_vstart IN timestamp, 
                             p_table_a_in IN varchar2,                             
@@ -80,11 +95,11 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                         from s left join m on s.x_business_hkey = m.x_business_hkey }';
         
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[TABLE_A]', p_table_a_in);
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_FIELDS]', priv_get_master_table_fields(p_table_m_in, g_business_fields_cons));
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_FIELDS_S_ALIAS]', priv_get_master_table_fields(p_table_m_in, g_business_fields_cons, 's.'));        
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[TECH_FIELDS]', priv_get_master_table_fields(p_table_m_in, g_tech_fields_cons));
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_HASH_KEY]', priv_get_master_table_fields(p_table_m_in, g_business_hash_key_cons)); 
-        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[DELTA_HASH_KEY]', priv_get_master_table_fields(p_table_m_in, g_delta_hash_key_cons));
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_FIELDS]', get_master_table_fields(p_table_m_in, g_business_fields_cons));
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_FIELDS_S_ALIAS]', get_master_table_fields(p_table_m_in, g_business_fields_cons, 's.'));        
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[TECH_FIELDS]', get_master_table_fields(p_table_m_in, g_tech_fields_cons));
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_HASH_KEY]', get_master_table_fields(p_table_m_in, g_business_hash_key_cons)); 
+        v_sql_ins_into_a := replace(v_sql_ins_into_a, '[DELTA_HASH_KEY]', get_master_table_fields(p_table_m_in, g_delta_hash_key_cons));
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[TABLE_M]', p_table_m_in);   
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[END_PARTITION]', pk_constants.c_x_vend_partition);
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[X_VSTART]', pk_etl.prepare_timestamp_replace(p_x_vstart));  
@@ -114,10 +129,10 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                                 where m.x_delta_hkey <> nvl(a.x_delta_hkey, 'NULL')}';
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[TABLE_M]', p_table_m_in);
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[PREV_PARTITION]', p_partition_name_in);
-        v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[BUSINESS_FIELDS]', priv_get_master_table_fields(p_table_m_in, g_business_fields_cons));
-        v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[TECH_FIELDS]', priv_get_master_table_fields(p_table_m_in, g_tech_fields_cons));
+        v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[BUSINESS_FIELDS]', get_master_table_fields(p_table_m_in, g_business_fields_cons));
+        v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[TECH_FIELDS]', get_master_table_fields(p_table_m_in, g_tech_fields_cons));
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[BUSINESS_FIELDS_M_ALIAS]', 
-                                                            priv_get_master_table_fields(p_table_m_in, g_business_fields_cons, 'm.'));
+                                                            get_master_table_fields(p_table_m_in, g_business_fields_cons, 'm.'));
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[X_VSTART]', pk_etl.prepare_timestamp_replace(p_x_vstart_in));
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[VEND_PARTITION]', pk_constants.c_x_vend_partition);
         v_ins_into_prev_partition := replace(v_ins_into_prev_partition, '[TABLE_A]', p_table_a_in);
