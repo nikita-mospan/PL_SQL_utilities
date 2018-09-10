@@ -1,6 +1,6 @@
 drop table master_tables_attributes;
 
-drop table mappings2master;
+drop table mappings2etl_stage;
 
 drop table master_tables;
 
@@ -30,13 +30,10 @@ create table master_tech_attributes (
     description    varchar2(4000), 
     constraint c_master_tech_attributes_pk primary key (attribute_name)); 
 
-create table mappings2master (
+create table mappings2etl_stage (
     mapping_name varchar2(30),   
-    master_table varchar2(30) not null,
     mapping_sql  clob ,
-    constraint c_mappings2master_fk foreign key (master_table) references master_tables,
     constraint c_mappings2master_pk primary key (mapping_name) );
-    
 
 insert into master_tables(master_table)
 select 'COMPANY_M' as master_table from dual
@@ -69,14 +66,16 @@ select  'X_VSTART',             'TIMESTAMP(6) NOT NULL'         from dual union 
 select  'X_VEND',               'TIMESTAMP(6) NOT NULL'         from dual
 ;
 
-insert into mappings2master (
-        mapping_name,                   master_table,   mapping_sql)
-select  'POPULATE_COMPANY_M',    'COMPANY_M',    'select company_id,name,segment from company_s' from dual union all
-select  'POPULATE_VALID_RULES_CONFIG_M',    'VALID_RULES_CONFIG_M',    
-                                'select rule_code,validated_table,rule_description, validation_check from valid_rules_config_s' from dual union all
-select  'POPULATE_COMPANY_ERR_M',    'COMPANY_ERR_M',    
-                                'select rule_code,SOURCE_X_BUSINESS_HKEY,SOURCE_X_VSTART from COMPANY_ERR_S' from dual 
-
+insert into mappings2etl_stage (
+        mapping_name,    mapping_sql)
+select  'DUMMY_COMPANY',    q'{insert into company_s (company_id,name,segment)
+                                select 123 as company_id, 'Sberbank' as name, 'Big' as segment from dual}' from dual union all
+select  'POPULATE_VALID_RULES_CONFIG',        
+                                q'{insert into valid_rules_config_s (rule_code,validated_table,rule_description, validation_check)
+                                   select 'RULE_1' as rule_code,
+                                            'COMPANY_M' as validated_table,
+                                            'SEGMENT field must be uppercase' as rule_description,
+                                            'segment = upper(segment) ' as validation_check from dual}' from dual
 ; 
 
 commit;

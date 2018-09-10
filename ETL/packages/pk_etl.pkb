@@ -65,19 +65,14 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
     procedure private_populate_table_a(p_x_vstart IN timestamp, 
                             p_table_a_in IN varchar2,                             
                             p_table_m_in IN varchar2,
-                            p_mapping_name_in IN varchar2) is
+                            p_table_s_in IN varchar2) is
         v_sql_ins_into_a varchar2(32767);
-        v_mapping_sql mappings2master.mapping_sql%type;
         v_rowcount number;
     begin
-        
-        select t.mapping_sql into v_mapping_sql
-        from mappings2master t
-        where t.mapping_name = p_mapping_name_in;
     
         v_sql_ins_into_a := 'insert /*+ append */ into [TABLE_A] ([BUSINESS_FIELDS], [TECH_FIELDS])
                         with s1 as ( ' ||
-                            v_mapping_sql || q'{),
+                            'select * from ' || p_table_s_in || q'{),
                             s as (select [BUSINESS_FIELDS]
                                 , [BUSINESS_HASH_KEY] as x_business_hkey
                                 , [DELTA_HASH_KEY] as x_delta_hkey
@@ -163,18 +158,19 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
     end; 
     
     procedure load_master_table(p_master_table_in IN master_tables.master_table%type,
-                                p_mapping_name_in IN mappings2master.mapping_name%type,
                                 p_x_vstart_in IN timestamp) is
-        v_table_a varchar2(30);
-        v_table_m varchar2(30);
+        v_table_a master_tables.auxillary_table%type;
+        v_table_m master_tables.master_table%type;
+        v_table_s master_tables.staging_table%type;
         v_prev_partition_name varchar2(30);
+        v_lock_name varchar2(30) := 'Load ' || p_master_table_in;
     begin
         pk_util_log.open_next_level(p_action_name_in => 'Load Master Table: ' || p_master_table_in);
         dbms_output.put_line(pk_util_log.get_start_log_id); 
         
-        pk_util_lock.acquire(p_lock_name_in => p_mapping_name_in, p_timeout_sec_in => 60 * 60 * 24);
+        pk_util_lock.acquire(p_lock_name_in => v_lock_name, p_timeout_sec_in => 60 * 60 * 24);
         
-        select t.auxillary_table, t.master_table into v_table_a, v_table_m
+        select t.auxillary_table, t.master_table, t.staging_table into v_table_a, v_table_m, v_table_s
         from master_tables t
         where t.master_table = p_master_table_in;
         
@@ -184,7 +180,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         private_populate_table_a(p_x_vstart => p_x_vstart_in, 
                             p_table_a_in => v_table_a,                             
                             p_table_m_in => v_table_m,
-                            p_mapping_name_in => p_mapping_name_in);
+                            p_table_s_in => v_table_s);
         
         v_prev_partition_name := 'p_' || to_char(p_x_vstart_in, 'YYYYmmDDhh24MIssFF');
         pk_util_log.log_and_execute_ddl(p_action_name_in => 'Create partition for delta in: ' ||  v_table_m
@@ -198,7 +194,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                                     , p_sql_in => 'alter table ' || v_table_m || ' exchange partition ' || pk_constants.c_x_vend_partition || ' with table ' 
                                                     || v_table_a || ' including indexes');
         
-        pk_util_lock.release(p_lock_name_in => p_mapping_name_in);
+        pk_util_lock.release(p_lock_name_in => v_lock_name);
         pk_util_log.close_level_success;
     exception
     	when others then
