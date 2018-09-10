@@ -14,6 +14,10 @@ CREATE OR REPLACE PACKAGE pk_etl AUTHID CURRENT_USER AS
     function prepare_timestamp_replace (p_timestamp_in IN timestamp) 
         return varchar2
         deterministic;
+    
+    procedure load_to_staging_table(p_staging_table_in in master_tables.staging_table%type,
+                                    p_mapping_name_in in mappings2etl_stage.mapping_name%type,
+                                    p_truncate_before_load_in boolean default true);
         
     procedure load_master_table(p_master_table_in IN master_tables.master_table%type,
                                 p_x_vstart_in IN timestamp);

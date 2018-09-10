@@ -157,6 +157,38 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                 'dd.mm.yyyy HH24.MI.SS.FF' || ''')';
     end; 
     
+    procedure load_to_staging_table(p_staging_table_in in master_tables.staging_table%type,
+                                    p_mapping_name_in in mappings2etl_stage.mapping_name%type,
+                                    p_truncate_before_load_in boolean default true) is
+        v_sql mappings2etl_stage.mapping_sql%type;
+        v_row_cnt tech_log_table.row_count%type;
+    begin
+        pk_util_log.open_next_level(p_action_name_in => 'load_to_staging_table',
+                                    p_comments_in => 'p_staging_table_in: ' || p_staging_table_in || pk_constants.eol ||
+                                        'p_mapping_name_in: ' || p_mapping_name_in || pk_constants.eol ||
+                                        'p_truncate_before_load_in: ' || case when p_truncate_before_load_in then 'Y' else 'N' end);
+        
+        if p_truncate_before_load_in then
+            pk_util_log.log_and_execute_ddl(p_action_name_in => 'Truncate ' || p_staging_table_in,
+                                            p_sql_in => 'truncate table ' || p_staging_table_in);
+        end if;
+        
+        select t.mapping_sql into v_sql
+        from mappings2etl_stage t
+        where t.mapping_name = p_mapping_name_in;
+        
+        pk_util_log.log_and_execute_dml(p_action_name_in => 'Populate ' || p_staging_table_in
+                                        , p_sql_in => v_sql
+                                        , p_commit_after_dml_in => true
+                                        , p_rowcount_out => v_row_cnt);
+        
+        pk_util_log.close_level_success;
+    exception
+    	when others then
+    		pk_util_log.close_level_fail;
+    		raise;        
+    end load_to_staging_table; 
+    
     procedure load_master_table(p_master_table_in IN master_tables.master_table%type,
                                 p_x_vstart_in IN timestamp) is
         v_table_a master_tables.auxillary_table%type;
