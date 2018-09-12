@@ -6,6 +6,8 @@ drop table master_tables;
 
 drop table master_tech_attributes;
 
+drop table sources;
+
 create table master_tables (
     master_table varchar2(30),
     auxillary_table as (substr(master_table, 1, length(master_table) - 1) || 'A'),
@@ -34,6 +36,15 @@ create table mappings2etl_stage (
     mapping_name varchar2(30),   
     mapping_sql  clob ,
     constraint c_mappings2master_pk primary key (mapping_name) );
+    
+create table sources (
+    source_id number not null,
+    source_name varchar2(30) not null,
+    constraint c_sources_pk primary key (source_id)
+);
+
+insert into sources (source_id, source_name)
+    select 1 as source_id, 'DEFAULT' as source_name from dual;
 
 insert into master_tables(master_table)
 select 'COMPANY_M' as master_table from dual
@@ -47,6 +58,7 @@ insert into master_tables_attributes (
         master_table,   attribute_name,     attribute_type,     is_part_of_business_key, is_part_of_business_delta, business_key_order)
 select 'COMPANY_M',     'COMPANY_ID',       'NUMBER NOT NULL',           'Y',                     'N',                 1          from dual union all
 select 'COMPANY_M',     'NAME',             'VARCHAR2(100) NOT NULL',    'Y',                     'N',                 2           from dual union all
+select 'COMPANY_M',     'SOURCE_ID',        'NUMBER NOT NULL',           'Y',                     'N',                 3           from dual union all
 select 'COMPANY_M',     'SEGMENT',          'VARCHAR2(50) NOT NULL',     'N',                     'Y',                 NULL           from dual union all
 select 'VALID_RULES_CONFIG_M',     'RULE_CODE', 'VARCHAR2(30) NOT NULL', 'Y',                     'N',                 1           from dual union all
 select 'VALID_RULES_CONFIG_M',     'VALIDATED_TABLE', 'VARCHAR2(30) NOT NULL', 'N',               'Y',                  NULL          from dual union all
@@ -68,8 +80,10 @@ select  'X_VEND',               'TIMESTAMP(6) NOT NULL'         from dual
 
 insert into mappings2etl_stage (
         mapping_name,    mapping_sql)
-select  'DUMMY_COMPANY',    q'{insert into company_s (company_id,name,segment)
-                                select 123 as company_id, 'Sberbank' as name, 'Big' as segment from dual}' from dual union all
+select  'DUMMY_COMPANY',    q'{insert into company_s (company_id,name,source_id,segment)
+                                select 123 as company_id, 'Sberbank' as name, 1 as source_id, 'Big' as segment from dual}' from dual union all
+select  'DUMMY_COMPANY2',    q'{insert into company_s (company_id,name,source_id,segment)
+                                select 1234 as company_id, 'VTB' as name, 2 as source_id, 'Big' as segment from dual}' from dual union all
 select  'POPULATE_VALID_RULES_CONFIG',        
                                 q'{insert into valid_rules_config_s (rule_code,validated_table,rule_description, validation_check)
                                    select 'RULE_1' as rule_code,

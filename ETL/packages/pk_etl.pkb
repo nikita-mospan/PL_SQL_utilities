@@ -67,7 +67,9 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
     procedure private_populate_table_a(p_x_vstart IN timestamp, 
                             p_table_a_in IN varchar2,                             
                             p_table_m_in IN varchar2,
-                            p_table_s_in IN varchar2) is
+                            p_table_s_in IN varchar2,
+                            p_close_version_column_in IN varchar2 default null,
+                            p_close_version_value_in IN varchar2 default null) is
         v_sql_ins_into_a varchar2(32767);
         v_rowcount number;
     begin
@@ -90,6 +92,15 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                                 , s.x_version_status
                                 , decode(s.x_delta_hkey, m.x_delta_hkey, m.x_vstart, s.x_vstart) as x_vstart
                         from s left join m on s.x_business_hkey = m.x_business_hkey }';
+        
+        if p_close_version_column_in is not null and p_close_version_value_in is not null then
+            v_sql_ins_into_a := v_sql_ins_into_a || pk_constants.eol ||
+                                'union all
+                                select [BUSINESS_FIELDS],
+                                    [TECH_FIELDS]
+                                from [TABLE_M] partition ([END_PARTITION])
+                                where ' || p_close_version_column_in || ' <> ' || p_close_version_value_in ;
+        end if;
         
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[TABLE_A]', p_table_a_in);
         v_sql_ins_into_a := replace(v_sql_ins_into_a, '[BUSINESS_FIELDS]', get_master_table_fields(p_table_m_in, g_business_fields_cons));
@@ -192,7 +203,9 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
     end load_to_staging_table; 
     
     procedure load_master_table(p_master_table_in IN master_tables.master_table%type,
-                                p_x_vstart_in IN timestamp) is
+                                p_x_vstart_in IN timestamp,
+                                p_close_version_column_in IN varchar2 default null,
+                                p_close_version_value_in IN varchar2 default null) is
         v_table_a master_tables.auxillary_table%type;
         v_table_m master_tables.master_table%type;
         v_table_s master_tables.staging_table%type;
@@ -214,7 +227,9 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
         private_populate_table_a(p_x_vstart => p_x_vstart_in, 
                             p_table_a_in => v_table_a,                             
                             p_table_m_in => v_table_m,
-                            p_table_s_in => v_table_s);
+                            p_table_s_in => v_table_s,
+                            p_close_version_column_in => p_close_version_column_in,
+                            p_close_version_value_in => p_close_version_value_in);
         
         v_prev_partition_name := 'p_' || to_char(p_x_vstart_in, 'YYYYmmDDhh24MIssFF');
         pk_util_log.log_and_execute_ddl(p_action_name_in => 'Create partition for delta in: ' ||  v_table_m

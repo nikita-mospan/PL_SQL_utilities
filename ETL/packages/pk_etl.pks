@@ -20,7 +20,9 @@ CREATE OR REPLACE PACKAGE pk_etl AUTHID CURRENT_USER AS
                                     p_truncate_before_load_in boolean default true);
         
     procedure load_master_table(p_master_table_in IN master_tables.master_table%type,
-                                p_x_vstart_in IN timestamp);
+                                p_x_vstart_in IN timestamp,
+                                p_close_version_column_in IN varchar2 default null,
+                                p_close_version_value_in IN varchar2 default null);
     
     function get_master_table_fields (p_table_m_in IN varchar2
                                 , p_type_in in varchar2
