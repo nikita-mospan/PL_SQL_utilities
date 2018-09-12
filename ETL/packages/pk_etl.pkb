@@ -1,4 +1,6 @@
 CREATE OR REPLACE PACKAGE BODY pk_etl AS    
+    
+    g_empty_bus_delta_dummy_val varchar2(100) := '''DUMMY_DELTA''';
 
     function get_master_table_fields (p_table_m_in IN varchar2
                                 , p_type_in in varchar2
@@ -32,7 +34,7 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                     and t.is_part_of_business_key = 'Y';
             when g_delta_hash_key_cons then
                 select 'pk_etl.make_md5_hash(' || 
-                        listagg(p_alias_in || t.attribute_name, q'{ || '|' || }' ) within group (order by t.attribute_name) || ')' into v_result                       
+                        nvl(listagg(p_alias_in || t.attribute_name, q'{ || '|' || }' ) within group (order by t.attribute_name), g_empty_bus_delta_dummy_val) || ')' into v_result                       
                 from master_tables_attributes t
                 where t.master_table = p_table_m_in
                     and t.is_part_of_business_delta = 'Y';

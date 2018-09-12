@@ -45,16 +45,16 @@ select 'COMPANY_ERR_M' from dual
 
 insert into master_tables_attributes (
         master_table,   attribute_name,     attribute_type,     is_part_of_business_key, is_part_of_business_delta, business_key_order)
-select 'COMPANY_M',     'COMPANY_ID',       'NUMBER NOT NULL',           'Y',                     'Y',                 1          from dual union all
-select 'COMPANY_M',     'NAME',             'VARCHAR2(100) NOT NULL',    'Y',                     'Y',                 2           from dual union all
+select 'COMPANY_M',     'COMPANY_ID',       'NUMBER NOT NULL',           'Y',                     'N',                 1          from dual union all
+select 'COMPANY_M',     'NAME',             'VARCHAR2(100) NOT NULL',    'Y',                     'N',                 2           from dual union all
 select 'COMPANY_M',     'SEGMENT',          'VARCHAR2(50) NOT NULL',     'N',                     'Y',                 NULL           from dual union all
-select 'VALID_RULES_CONFIG_M',     'RULE_CODE', 'VARCHAR2(30) NOT NULL', 'Y',                     'Y',                 1           from dual union all
+select 'VALID_RULES_CONFIG_M',     'RULE_CODE', 'VARCHAR2(30) NOT NULL', 'Y',                     'N',                 1           from dual union all
 select 'VALID_RULES_CONFIG_M',     'VALIDATED_TABLE', 'VARCHAR2(30) NOT NULL', 'N',               'Y',                  NULL          from dual union all
 select 'VALID_RULES_CONFIG_M',     'RULE_DESCRIPTION', 'VARCHAR2(4000) NOT NULL', 'N',            'Y',                  NULL          from dual union all
 select 'VALID_RULES_CONFIG_M',     'VALIDATION_CHECK', 'VARCHAR2(4000) NOT NULL', 'N',            'Y',                  NULL          from dual union all
-select 'COMPANY_ERR_M', 'RULE_CODE', 'VARCHAR2(30) NOT NULL', 'Y', 'Y', 1 from dual union all
-select 'COMPANY_ERR_M', 'SOURCE_X_BUSINESS_HKEY', 'VARCHAR2(32) NOT NULL', 'Y', 'Y', 2 from dual union all
-select 'COMPANY_ERR_M', 'SOURCE_X_VSTART', 'TIMESTAMP(6) NOT NULL', 'Y', 'Y', 3 from dual 
+select 'COMPANY_ERR_M', 'RULE_CODE', 'VARCHAR2(30) NOT NULL', 'Y', 'N', 1 from dual union all
+select 'COMPANY_ERR_M', 'SOURCE_X_BUSINESS_HKEY', 'VARCHAR2(32) NOT NULL', 'Y', 'N', 2 from dual union all
+select 'COMPANY_ERR_M', 'SOURCE_X_VSTART', 'TIMESTAMP(6) NOT NULL', 'Y', 'N', 3 from dual 
 ;
 
 insert into master_tech_attributes (
