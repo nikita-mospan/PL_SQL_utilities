@@ -32,10 +32,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_lock AS
             when 5 then raise_application_error(-20005, 'Illegal lockhandle (dbms_lock.request returned 5)', TRUE);
             else null;
         end case;
-        
-        insert into application_locks (lock_name, timeout_sec, sid)
-            values(p_lock_name_in, p_timeout_sec_in, to_number(SYS_CONTEXT('userenv', 'SID')));
-        
+                       
         commit;
         
         pk_util_log.close_level_success;
@@ -55,9 +52,6 @@ CREATE OR REPLACE PACKAGE BODY pk_util_lock AS
         
         v_lock_handle := priv_get_lock_handle(p_lock_name_in);
         
-        delete from application_locks t where t.lock_name = p_lock_name_in;
-        commit;
-        
         v_lock_release_return := dbms_lock.release(lockhandle => v_lock_handle);
         
         case v_lock_release_return
@@ -67,7 +61,7 @@ CREATE OR REPLACE PACKAGE BODY pk_util_lock AS
             else null;
         end case;
         
-        
+        commit;   
         
         pk_util_log.close_level_success;
     exception
