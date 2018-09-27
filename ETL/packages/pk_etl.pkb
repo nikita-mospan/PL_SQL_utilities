@@ -28,13 +28,24 @@ CREATE OR REPLACE PACKAGE BODY pk_etl AS
                 order by t.attribute_name;
             when g_business_hash_key_cons then
                 select 'pk_etl.make_md5_hash(' || 
-                        listagg(p_alias_in || t.attribute_name, q'{ || '|' || }' ) within group (order by t.business_key_order) || ')' into v_result                       
+                        listagg(p_alias_in || 
+                            case 
+                                when t.attribute_type like 'DATE%' then 'to_char(' || t.attribute_name || ',''YYYYMMDD'')'
+                                when t.attribute_type like 'TIMESTAMP%' then 'to_char(' || t.attribute_name || ',''YYYYMMDDHH24MISSFF'')'
+                                else t.attribute_name
+                            end, q'{ || '|' || }' ) within group (order by t.business_key_order) || ')' into v_result                       
                 from master_tables_attributes t
                 where t.master_table = p_table_m_in
                     and t.is_part_of_business_key = 'Y';
             when g_delta_hash_key_cons then
                 select 'pk_etl.make_md5_hash(' || 
-                        nvl(listagg(p_alias_in || t.attribute_name, q'{ || '|' || }' ) within group (order by t.attribute_name), g_empty_bus_delta_dummy_val) || ')' into v_result                       
+                        nvl(listagg(p_alias_in || 
+                            case 
+                                when t.attribute_type like 'DATE%' then 'to_char(' || t.attribute_name || ',''YYYYMMDD'')'
+                                when t.attribute_type like 'TIMESTAMP%' then 'to_char(' || t.attribute_name || ',''YYYYMMDDHH24MISSFF'')'
+                                else t.attribute_name
+                            end,
+                            q'{ || '|' || }' ) within group (order by t.attribute_name), g_empty_bus_delta_dummy_val) || ')' into v_result                       
                 from master_tables_attributes t
                 where t.master_table = p_table_m_in
                     and t.is_part_of_business_delta = 'Y';
