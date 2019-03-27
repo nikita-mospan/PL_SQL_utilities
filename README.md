@@ -1,4 +1,4 @@
-# PL_SQL_utilities
+# PL_SQL_utilities (project has been migrated to liquibase, see https://github.com/nikita-mospan/plsql-liquibase-utplsql )
 > The project contains PL/SQL packages that might be useful while developing PL/SQL applications.
 
 ##Current utilities
